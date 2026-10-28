@@ -4,6 +4,7 @@ import type { ExamItem } from "../../engine/exam";
 import { Rating } from "../../engine/store";
 import { numberClose, fmt } from "../../engine/grade";
 import { haptic } from "../bits";
+import { pushNumber } from "../Calculator";
 
 type Side = "dr" | "cr" | null;
 
@@ -53,7 +54,7 @@ export function Journal({ item, hints, onDone }: ItemProps) {
     <>
       <div className="card">
         <div className="eyebrow">Journal entry</div>
-        <p style={{ fontWeight: 600, marginTop: 6 }}>{j.text}</p>
+        <p style={{ fontWeight: 600, marginTop: 6 }}>{j.text.split(/(\$[\d,]+)/).map((part, i) => /^\$[\d,]+$/.test(part) ? <button key={i} className="term" style={{ fontWeight: 700 }} onClick={() => pushNumber(Number(part.replace(/[$,]/g, "")))}>{part}</button> : <span key={i}>{part}</span>)}</p>
         <p className="small muted">Mark each account Dr or Cr and enter its amount. Leave accounts that aren't part of this entry blank.</p>
       </div>
       <div className="stack">
@@ -69,7 +70,7 @@ export function Journal({ item, hints, onDone }: ItemProps) {
                 <button className={`soft ${s === "cr" ? "primary" : ""}`} style={{ minHeight: 36, padding: "4px 12px" }} onClick={() => toggle(acct, "cr")}>Cr</button>
               </span>
               {s && !checked && (
-                <input type="text" inputMode="decimal" placeholder="Amount" value={amts[acct] ?? ""} onChange={(ev) => setAmts({ ...amts, [acct]: ev.target.value })} style={{ minHeight: 40, flexBasis: "100%" }} />
+                <input className="numeric" type="text" inputMode="decimal" placeholder="Amount" value={amts[acct] ?? ""} onChange={(ev) => setAmts({ ...amts, [acct]: ev.target.value })} style={{ minHeight: 40, flexBasis: "100%" }} />
               )}
               {checked && (s || e.side) && (
                 <div className="small" style={{ flexBasis: "100%" }}>

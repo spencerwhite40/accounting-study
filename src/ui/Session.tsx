@@ -16,6 +16,7 @@ import { Journal } from "./items/Journal";
 import { SCENARIOS } from "../engine/exam";
 import { useState as useReactState } from "react";
 import { haptic, masteryClass, Ring } from "./bits";
+import { CalculatorSheet, CalculatorFab, closeCalculator, useCalculatorOpen } from "./Calculator";
 
 export interface Result {
   rating: Grade;
@@ -86,6 +87,7 @@ export function Session({ params }: { params: URLSearchParams }) {
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [itemKey, setItemKey] = useState(0);
   const [startedAt] = useState(Date.now());
+  const calcOpen = useCalculatorOpen();
 
   const item = items[i];
 
@@ -110,6 +112,7 @@ export function Session({ params }: { params: URLSearchParams }) {
     });
   };
   function next() {
+    closeCalculator();
     setDone(null);
     setHints(0);
     setI((k) => k + 1);
@@ -134,7 +137,7 @@ export function Session({ params }: { params: URLSearchParams }) {
   const c = catalog.concept(conceptId);
   const context = item.kind === "calc" || item.kind === "journal" ? item.context : undefined;
   return (
-    <div className="screen session">
+    <div className="screen session" style={calcOpen ? { paddingBottom: "min(62dvh, 420px)" } : undefined}>
       <div className="topbar">
         <button className="ghost icon" onClick={() => go("#/")} aria-label="Close">✕</button>
         <div className="seg grow">
@@ -165,6 +168,8 @@ export function Session({ params }: { params: URLSearchParams }) {
         {item.kind === "journal" && <Journal {...props} />}
       </div>
 
+      {(item.kind === "calc" || item.kind === "journal") && !done && <CalculatorFab />}
+      <CalculatorSheet />
       {done && (
         <div className="sticky-bottom row">
           <button className="primary grow" style={{ minHeight: 54, fontSize: 17 }} onClick={next}>{i + 1 >= items.length ? "Finish" : "Next"} →</button>

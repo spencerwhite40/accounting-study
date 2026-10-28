@@ -5,6 +5,7 @@ import { stepLines } from "../../engine/calc";
 import { Rating } from "../../engine/store";
 import { catalog } from "../../App";
 import { haptic } from "../bits";
+import { Given } from "../Calculator";
 
 /**
  * Numbers mode. Ask for the target figure only. After an answer, always show the
@@ -68,12 +69,12 @@ export function Calc({ item, hints, onDone }: ItemProps) {
         <b>{inst.title}</b>
         {inst.scenario && <p className="small muted">{inst.scenario}</p>}
         <ul className="givens">
-          {inst.givens.map((g, i) => <li key={i}><span>{g.label}</span><b>{fmt(g.value, g.unit)}</b></li>)}
+          {inst.givens.map((g, i) => <Given key={i} label={g.label} value={g.unit === "%" ? g.value : g.value} display={fmt(g.value, g.unit)} />)}
         </ul>
         <p><b>{inst.question}</b> <span className="muted small">({unitHint(inst.unit)})</span></p>
         {!checked && (
           <>
-            <input type="text" inputMode="decimal" value={val} placeholder="Your answer" onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
+            <input className="numeric" type="text" inputMode="decimal" value={val} placeholder="Your answer" onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
             {inst.direction && (
               <div style={{ marginTop: 8 }}>
                 <p className="small muted">{inst.direction.prompt}</p>
@@ -124,11 +125,11 @@ export function Calc({ item, hints, onDone }: ItemProps) {
             <b>{s.name}</b>
             <div className="sol">{s.formula}</div>
             <ul className="givens">
-              {s.inputs.map((inp, k) => <li key={k}><span>{inp.label}{inp.derived ? " (from an earlier step)" : ""}</span><b>{fmt(inp.value, inp.unit)}</b></li>)}
+              {s.inputs.map((inp, k) => <Given key={k} label={`${inp.label}${inp.derived ? " (from an earlier step)" : ""}`} value={inp.value} display={fmt(inp.value, inp.unit)} />)}
             </ul>
             {stepShown === null ? (
               <>
-                <input type="text" inputMode="decimal" value={stepVal} placeholder={`${s.name} (${unitHint(s.unit)})`} onChange={(e) => setStepVal(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") checkStep(); }} />
+                <input className="numeric" type="text" inputMode="decimal" value={stepVal} placeholder={`${s.name} (${unitHint(s.unit)})`} onChange={(e) => setStepVal(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") checkStep(); }} />
                 <button className="primary block" style={{ marginTop: 10 }} onClick={checkStep} disabled={!/\d/.test(stepVal)}>Check step</button>
               </>
             ) : (

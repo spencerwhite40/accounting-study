@@ -198,3 +198,19 @@ describe("exam scenarios", () => {
     expect(items.some((it) => it.kind === "journal" || (it.kind === "calc" && it.id.startsWith("ex:")))).toBe(true);
   });
 });
+
+import { evaluate } from "../ui/Calculator";
+describe("calculator parser", () => {
+  it("handles the operators, precedence, parens, percent and formatting", () => {
+    expect(evaluate("100,000 ÷ 12,500")).toBe(8);
+    expect(evaluate("1,404 + 180 + 27 × 8")).toBe(1800);
+    expect(evaluate("(20,000 + 150,000) − 10,000")).toBe(160000);
+    expect(evaluate("150% × 200,000")).toBe(300000);
+    expect(evaluate("$315,000 / $210,000")).toBe(1.5);
+    expect(evaluate("-5 + 2")).toBe(-3);
+    expect(evaluate("5 +")).toBeNull();
+    expect(evaluate("(5")).toBeNull();
+    expect(evaluate("5 ÷ 0")).toBeNull();
+    expect(evaluate("alert(1)")).toBeNull();
+  });
+});

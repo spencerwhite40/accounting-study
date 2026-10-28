@@ -4,6 +4,7 @@ import { fmt } from "../../engine/grade";
 import { Rating } from "../../engine/store";
 import { catalog } from "../../App";
 import { haptic } from "../bits";
+import { Given } from "../Calculator";
 
 /**
  * Spot the steps. "steps": pick the calculations needed, in order, without
@@ -47,7 +48,7 @@ export function Chain({ item, hints, onDone }: ItemProps) {
         <b>{item.sub === "steps" ? "Which equations, in what order?" : "What's missing?"}</b>
         {inst.scenario && <p className="small muted">{inst.scenario}</p>}
         <ul className="givens">
-          {inst.givens.map((g, i) => <li key={i}><span>{g.label}</span><b>{fmt(g.value, g.unit)}</b></li>)}
+          {inst.givens.map((g, i) => <Given key={i} label={g.label} value={g.value} display={fmt(g.value, g.unit)} />)}
         </ul>
         <p><b>{inst.question}</b></p>
         <p className="small muted">Don't compute anything. {item.sub === "steps" ? "Tap the equations you'd need, in the order you'd solve them." : "The equation for this figure needs the inputs below. Which one is not given and has to be worked out first?"}</p>
