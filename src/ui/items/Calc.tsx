@@ -14,7 +14,7 @@ import { haptic } from "../bits";
 export function Calc({ item, hints, onDone }: ItemProps) {
   if (item.kind !== "calc") return null;
   const inst = item.inst;
-  const node = catalog.graph.node(inst.target);
+  const node = catalog.graph.nodes.get(inst.target);
   const [val, setVal] = useState("");
   const [dir, setDir] = useState<number | null>(null);
   const [checked, setChecked] = useState<null | { num: boolean; dir: boolean }>(null);
@@ -103,8 +103,8 @@ export function Calc({ item, hints, onDone }: ItemProps) {
               <div className="sol">{s.formula}{"\n"}{stepLines(s).join("\n")}</div>
             </div>
           ))}
-          <p className="small"><b>When you need this:</b> {node.when}</p>
-          {node.watch && <p className="small"><b>Watch out:</b> {node.watch}</p>}
+          {node && <p className="small"><b>When you need this:</b> {node.when}</p>}
+          {node?.watch && <p className="small"><b>Watch out:</b> {node.watch}</p>}
         </div>
       )}
 

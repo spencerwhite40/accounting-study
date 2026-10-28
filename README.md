@@ -7,6 +7,11 @@ calculation as a graph node, so generated problems can hide an input behind a
 prior calculation without saying so; hints name the missing piece, worked
 solutions show the chain, and a wrong answer offers a step-by-step breakdown.
 
+Exam 1 layer: generated job-costing and ABC cost-flow scenarios (journal entries,
+T-account balances, over/under applied overhead, COGM, income statement), a
+journal-entry builder, the official formula sheet, and a study-guide checklist that
+shows mastery per exam topic. Regular sessions are exam-weighted.
+
 Design notes: `docs/design.md`. Content: `src/content/<course>/ch*.ts`.
 
 ## Run

@@ -12,6 +12,9 @@ import { Sort } from "./items/Sort";
 import { Order } from "./items/Order";
 import { Calc } from "./items/Calc";
 import { Chain } from "./items/Chain";
+import { Journal } from "./items/Journal";
+import { SCENARIOS } from "../engine/exam";
+import { useState as useReactState } from "react";
 import { haptic, masteryClass, Ring } from "./bits";
 
 export interface Result {
@@ -28,11 +31,15 @@ interface Outcome { item: Item; rating: Grade; mode: Mode }
 
 export function Session({ params }: { params: URLSearchParams }) {
   const { progress, update } = useApp();
-  const mode = (params.get("mode") ?? "mixed") as Mode | "mixed";
+  const rawMode = params.get("mode") ?? "mixed";
+  const mode = (rawMode === "exam" ? "mixed" : rawMode) as Mode | "mixed";
+  const isExam = rawMode === "exam";
   const ch = params.get("ch") ? Number(params.get("ch")) : undefined;
   const concept = params.get("concept");
   const node = params.get("node");
   const weak = params.get("weak") === "1";
+  const scenarioId = params.get("scenario");
+  const conceptList = params.get("concepts")?.split(",").filter(Boolean);
 
   const initial = useMemo<Item[]>(() => {
     if (concept) {
@@ -46,6 +53,21 @@ export function Session({ params }: { params: URLSearchParams }) {
           const it = makeItem(catalog, concept, m, Math.floor(Math.random() * 4));
           if (it) items.push(it);
         }
+      }
+      return items;
+    }
+    if (isExam && scenarioId) {
+      const sc = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
+      return sc ? (sc.make(mulberry32(Date.now())) as Item[]) : [];
+    }
+    if (conceptList && conceptList.length) {
+      const items: Item[] = [];
+      for (const id of conceptList) {
+        if (!catalog.concepts.has(id)) continue;
+        const reps = progress.cards[id]?.reps ?? 0;
+        const m = reps === 0 ? "flashcard" : (["mcq", "cloze", "formula", "chain", "calc"] as Mode[]).filter((x) => catalog.modesFor(id).includes(x))[Math.floor(Math.random() * 3) % 3] ?? "mcq";
+        const it = makeItem(catalog, id, m, Math.floor(Math.random() * 4)) ?? makeItem(catalog, id, "mcq", 0);
+        if (it) items.push(it);
       }
       return items;
     }
@@ -110,6 +132,7 @@ export function Session({ params }: { params: URLSearchParams }) {
   const props: ItemProps = { item, hints, onDone };
   const conceptId = itemConcepts(item)[0] as string;
   const c = catalog.concept(conceptId);
+  const context = item.kind === "calc" || item.kind === "journal" ? item.context : undefined;
   return (
     <div className="screen session">
       <div className="topbar">
@@ -124,12 +147,12 @@ export function Session({ params }: { params: URLSearchParams }) {
       </div>
       <div className="row" style={{ marginBottom: 8 }}>
         <span className="pill accent">{MODE_LABEL[itemMode(item)]}</span>
-        <span className="muted tiny">Ch {c.chapter} · {c.topic}</span>
-        <span className="grow" />
+        <span className="muted tiny grow" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Ch {c.chapter} · {c.topic}</span>
         {!done && <button className="ghost small" style={{ minHeight: 36 }} onClick={another}>Another</button>}
         {!done && hints < hintList.length && <button className="soft small" style={{ minHeight: 36 }} onClick={() => { setHints(hints + 1); haptic("tap"); }}>Hint {hints + 1}/{hintList.length}</button>}
       </div>
       {hintList.slice(0, hints).map((h, k) => <div key={k} className="hint">{h}</div>)}
+      {context && <ContextCard ctx={context} />}
 
       <div key={`${item.id}:${itemKey}`} className="item-enter">
         {item.kind === "flashcard" && <Flashcard {...props} />}
@@ -139,6 +162,7 @@ export function Session({ params }: { params: URLSearchParams }) {
         {item.kind === "order" && <Order {...props} />}
         {item.kind === "calc" && <Calc {...props} />}
         {item.kind === "chain" && <Chain {...props} />}
+        {item.kind === "journal" && <Journal {...props} />}
       </div>
 
       {done && (
@@ -228,18 +252,43 @@ function hintsFor(item: Item): string[] {
       }
       return [`Chapter ${c.chapter}, ${c.topic}.`, c.plain, `First letters: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
     }
+    case "journal":
+      return [
+        "Ask of each cost: does it belong to the factory (product cost → Raw Materials, WIP or Manufacturing Overhead) or to selling/admin (period cost → an expense account)?",
+        `${item.debits.length} debit${item.debits.length > 1 ? "s" : ""} and ${item.credits.length} credit${item.credits.length > 1 ? "s" : ""}. Debits must equal credits.`,
+        `Debit ${item.debits[0]?.account}.`,
+      ];
     case "sort":
       return [`Think about what each bucket is for, then place the obvious ones first.`, item.set.cards[0] ? `"${item.set.cards[0].text}" goes in ${item.set.buckets[item.set.cards[0].bucket]}.` : ""].filter(Boolean);
     case "order":
       return [item.set.explain ?? `Find the first step, then the last; the middle falls into place.`, `First step: ${item.set.steps[0]}`];
     case "calc": {
-      const n = catalog.graph.node(item.inst.target);
-      const hs = [`Formula: ${n.formula}`];
+      const n = catalog.graph.nodes.get(item.inst.target);
+      const last = item.inst.chain[item.inst.chain.length - 1];
+      const hs = [`Formula: ${n?.formula ?? last?.formula ?? ""}`];
       if (item.inst.hidden.length) hs.push(`Not every input is given. You need ${item.inst.hidden.join(" and ")} first; compute it from the figures that are given.`);
-      else hs.push(n.watch ?? n.when);
+      else if (n) hs.push(n.watch ?? n.when);
+      else if (last) hs.push(last.inputs[0]?.label ?? c.plain);
       const prev = item.inst.chain.length > 1 ? item.inst.chain[item.inst.chain.length - 2] : undefined;
       if (prev) hs.push(`${prev.name} works out to ${fmtNum(prev.result, prev.unit)}.`);
       return hs;
     }
   }
+}
+
+function ContextCard({ ctx }: { ctx: { title: string; intro: string; lines: string[] } }) {
+  const [open, setOpen] = useReactState(false);
+  return (
+    <div className="card flat" style={{ padding: 12 }}>
+      <button className="ghost block" style={{ padding: 0, minHeight: 0, whiteSpace: "normal" }} onClick={() => setOpen(!open)}>
+        <div className="row"><span className="eyebrow grow">Scenario · {ctx.title}</span><span className="muted small">{open ? "hide" : "show"}</span></div>
+      </button>
+      {open && (
+        <div className="small" style={{ marginTop: 8 }}>
+          <p>{ctx.intro}</p>
+          {ctx.lines.map((l, i) => <p key={i} style={{ margin: "4px 0" }}>{l}</p>)}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -43,6 +43,15 @@ const calcs: CalcNode[] = [
     compute: (v) => (v.r1 ?? 0) * (v.u1 ?? 0) + (v.r2 ?? 0) * (v.u2 ?? 0) + (v.r3 ?? 0) * (v.u3 ?? 0),
   },
   {
+    id: "ch4.abc-total-applied", chapter: ch, concept: id("activity-based-costing"), name: "Total overhead applied under ABC (all pools)", unit: "$",
+    formula: "Σ over every activity pool of (activity rate × actual activity)",
+    when: "The applied-overhead entry under ABC (debit WIP, credit MOH) and the first half of the over/under-applied comparison. The exam review problem has five pools.",
+    watch: "Use ACTUAL activity with each pool's own rate; then add the pools. Compare the total with actual overhead, not pool by pool.",
+    inputs: { r1: { label: "Machining rate per machine-hour", unit: "$" }, a1: { label: "Actual machine-hours", unit: "hrs" }, r2: { label: "Purchase-order rate per order", unit: "$" }, a2: { label: "Actual orders", unit: "units" }, r3: { label: "Testing rate per test", unit: "$" }, a3: { label: "Actual tests", unit: "units" } },
+    gen: (rng) => ({ r1: r(rng, 120, 240, 10), a1: r(rng, 800, 1500, 50), r2: r(rng, 100, 200, 10), a2: r(rng, 400, 800, 20), r3: r(rng, 400, 800, 50), a3: r(rng, 200, 300, 5) }),
+    compute: (v) => (v.r1 ?? 0) * (v.a1 ?? 0) + (v.r2 ?? 0) * (v.a2 ?? 0) + (v.r3 ?? 0) * (v.a3 ?? 0),
+  },
+  {
     id: "ch4.abc-oh-per-unit", chapter: ch, concept: id("activity-based-costing"), name: "ABC overhead per unit", unit: "$/unit",
     formula: "Total overhead allocated to the product under ABC ÷ Units of the product produced",
     when: "Needed to build the ABC unit product cost and to compare with the plantwide overhead per unit.",

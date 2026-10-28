@@ -52,11 +52,21 @@ export function Home() {
           </div>
         </div>
         <button className="primary block" style={{ marginTop: 14, minHeight: 54, fontSize: 17 }} onClick={() => go("#/study?mode=mixed")}>
-          Start session · {planSize} items
+          Exam prep session · {planSize} items
         </button>
         <div className="row" style={{ marginTop: 8 }}>
           <button className="soft grow" onClick={() => go("#/study?mode=mixed&cram=1")}>Cram</button>
           <button className="soft grow" onClick={() => go(`#/study?mode=${current?.mode ?? "formula"}`)}>Equations · rung {current?.n ?? 1}</button>
+        </div>
+      </div>
+
+      <h3>Exam 1</h3>
+      <div className="card flat">
+        <div className="row"><div className="grow"><div style={{ fontWeight: 700 }}>Exam-style scenarios</div><div className="small muted">Job costing and ABC cost flows like the review activities: journal entries, balances, over/under applied, statements.</div></div></div>
+        <div className="row" style={{ marginTop: 10 }}>
+          <button className="primary grow" style={{ whiteSpace: "normal", padding: "10px 8px" }} onClick={() => go("#/study?mode=exam&scenario=job")}>Job costing flow</button>
+          <button className="primary grow" style={{ whiteSpace: "normal", padding: "10px 8px" }} onClick={() => go("#/study?mode=exam&scenario=abc")}>ABC flow</button>
+          <button className="soft" onClick={() => go("#/exam")}>Readiness</button>
         </div>
       </div>
 

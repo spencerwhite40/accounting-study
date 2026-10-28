@@ -1,8 +1,8 @@
 import type { Chapter, Concept, SortSet, OrderSet, CalcInstance } from "../content/types";
 import { CalcGraph, generate } from "./calc";
 
-export type Mode = "flashcard" | "mcq" | "cloze" | "sort" | "order" | "formula" | "chain" | "calc";
-export const MODES: Mode[] = ["flashcard", "mcq", "cloze", "sort", "order", "formula", "chain", "calc"];
+export type Mode = "flashcard" | "mcq" | "cloze" | "sort" | "order" | "formula" | "chain" | "calc" | "journal";
+export const MODES: Mode[] = ["flashcard", "mcq", "cloze", "sort", "order", "formula", "chain", "calc", "journal"];
 export const MODE_LABEL: Record<Mode, string> = {
   flashcard: "Flashcards",
   mcq: "Multiple choice",
@@ -12,6 +12,7 @@ export const MODE_LABEL: Record<Mode, string> = {
   formula: "Know the equation",
   chain: "Spot the steps",
   calc: "Numbers",
+  journal: "Journal entry",
 };
 
 export type ClozePart = string | { answers: string[] };
@@ -23,7 +24,8 @@ export type Item =
   | { kind: "chain"; id: string; concept: string; sub: "steps" | "missing"; inst: CalcInstance; options: { node: string; name: string }[] }
   | { kind: "sort"; id: string; concepts: string[]; set: SortSet }
   | { kind: "order"; id: string; concepts: string[]; set: OrderSet }
-  | { kind: "calc"; id: string; concept: string; title: string; inst: CalcInstance };
+  | { kind: "calc"; id: string; concept: string; title: string; inst: CalcInstance; context?: { title: string; intro: string; lines: string[] } }
+  | { kind: "journal"; id: string; concept: string; context: { title: string; intro: string; lines: string[] }; text: string; debits: { account: string; amount: number }[]; credits: { account: string; amount: number }[]; accounts: string[]; explain: string };
 
 /** The mode an item is tracked under (formula drills reuse mcq/cloze renderers). */
 export function itemMode(item: Item): Mode {

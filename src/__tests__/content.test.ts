@@ -151,3 +151,50 @@ describe("equation drills", () => {
     }
   });
 });
+
+import { SCENARIOS } from "../engine/exam";
+import { STUDY_GUIDE, EXAM_WEIGHT } from "../content/exam1";
+
+describe("exam scenarios", () => {
+  it("every scenario item references a real concept, journal entries balance, numbers are finite and non-negative balances", () => {
+    for (const sc of SCENARIOS) {
+      for (let seed = 1; seed <= 30; seed++) {
+        const items = sc.make(mulberry32(seed * 31));
+        expect(items.length).toBeGreaterThan(8);
+        for (const it of items) {
+          expect(cat.concepts.has(it.concept), `${sc.id} ${it.id} concept ${it.concept}`).toBe(true);
+          if (it.kind === "journal") {
+            const d = it.debits.reduce((a, l) => a + l.amount, 0);
+            const c = it.credits.reduce((a, l) => a + l.amount, 0);
+            expect(d, `${it.id} seed ${seed} balances`).toBe(c);
+            for (const l of [...it.debits, ...it.credits]) { expect(l.amount).toBeGreaterThan(0); expect(it.accounts).toContain(l.account); }
+          } else {
+            expect(Number.isFinite(it.inst.answer), `${it.id} seed ${seed}`).toBe(true);
+            if (/end|rate|applied|actual|dm|tmc|cogs/.test(it.id)) expect(it.inst.answer, `${it.id} seed ${seed}`).toBeGreaterThanOrEqual(0);
+          }
+        }
+      }
+    }
+  });
+  it("job scenario is internally consistent: WIP and FG roll forward, COGS adjusts by the variance", () => {
+    const items = SCENARIOS[0]!.make(mulberry32(7));
+    const get = (id: string) => { const it = items.find((x) => x.id === id); return it && it.kind === "calc" ? it.inst : undefined; };
+    const applied = get("ex:job:applied")!, actual = get("ex:job:actual")!, ou = get("ex:job:overunder")!;
+    expect(Math.abs(actual.answer - applied.answer)).toBeCloseTo(ou.answer, 2);
+    const tmc = get("ex:job:tmc")!, dm = get("ex:job:dm")!;
+    const dl = tmc.givens.find((g) => g.label === "Direct labor")!.value;
+    expect(tmc.answer).toBeCloseTo(dm.answer + dl + applied.answer, 2);
+    const adj = get("ex:job:adjcogs")!;
+    const cogs = adj.givens.find((g) => g.label.startsWith("Unadjusted"))!.value;
+    expect(adj.answer).toBeCloseTo(cogs + (actual.answer - applied.answer), 2);
+  });
+  it("study guide references real concepts and exam weights favour job costing and ABC", () => {
+    for (const s of STUDY_GUIDE) for (const it of s.items) for (const id of it.concepts) expect(cat.concepts.has(id), id).toBe(true);
+    expect(EXAM_WEIGHT["ac241.ch3.predetermined-overhead-rate"]).toBeGreaterThan(EXAM_WEIGHT["ac241.ch1.sustainability"] ?? 1);
+  });
+  it("mixed sessions include exam scenario questions", () => {
+    const p = emptyProgress();
+    const items = buildSession(cat, p, { mode: "mixed", size: 14, cram: true });
+    expect(items.some((it) => it.kind === "journal" || (it.kind === "calc" && it.id.startsWith("ex:")))).toBe(true);
+  });
+});

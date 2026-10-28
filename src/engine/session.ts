@@ -1,6 +1,8 @@
 import { Catalog, MODES, type Item, type Mode, makeItem, mulberry32, shuffle, hash, itemMode } from "./items";
 import { type Progress, isDue, mastery, accuracy } from "./store";
 import type { SortSet, OrderSet } from "../content/types";
+import { EXAM_WEIGHT } from "../content/exam1";
+import { SCENARIOS } from "./exam";
 
 export interface SessionSpec {
   mode: Mode | "mixed";
@@ -50,8 +52,11 @@ export function buildSession(cat: Catalog, p: Progress, spec: SessionSpec): Item
 
   const due = usable.filter((c) => isDue(p, c.id, now));
   const seen = usable.filter((c) => (p.cards[c.id]?.reps ?? 0) > 0 && !isDue(p, c.id, now));
-  const fresh = usable.filter((c) => (p.cards[c.id]?.reps ?? 0) === 0);
-  seen.sort((a, b) => mastery(p, a.id, now) - mastery(p, b.id, now));
+  // exam weighting: weakest first, ties broken by how heavily the exam leans on the concept
+  const w = (id: string) => EXAM_WEIGHT[id] ?? 1;
+  seen.sort((a, b) => (mastery(p, a.id, now) - w(a.id) * 0.08) - (mastery(p, b.id, now) - w(b.id) * 0.08));
+  // new concepts: exam-heavy topics (job costing, ABC, cost flows) come first
+  const fresh = shuffle(usable.filter((c) => (p.cards[c.id]?.reps ?? 0) === 0), rng).sort((a, b) => w(b.id) - w(a.id));
 
   // concepts whose FIRST ever review happened in the last 24h
   const firstSeen = new Map<string, number>();
@@ -59,10 +64,10 @@ export function buildSession(cat: Catalog, p: Progress, spec: SessionSpec): Item
   const newToday = [...firstSeen.values()].filter((ts) => now.getTime() - ts < 86400e3).length;
   const newBudget = Math.max(0, p.settings.dailyNew - newToday);
 
-  let picked = shuffle(due, rng).slice(0, size);
-  if (picked.length < size) picked = picked.concat(shuffle(fresh, rng).slice(0, spec.cram ? size : Math.min(newBudget, size - picked.length)));
+  let picked = shuffle(due, rng).sort((a, b) => w(b.id) - w(a.id)).slice(0, size);
+  if (picked.length < size) picked = picked.concat(fresh.slice(0, spec.cram ? size : Math.min(newBudget, size - picked.length)));
   if (picked.length < size) picked = picked.concat(seen.slice(0, size - picked.length));
-  if (picked.length < size && spec.cram) picked = picked.concat(shuffle(fresh, rng));
+  if (picked.length < size && spec.cram) picked = picked.concat(fresh);
   picked = [...new Map(picked.map((c) => [c.id, c])).values()].slice(0, size);
 
   // sort/order modes are set-based: schedule the sets whose concepts are weakest
@@ -87,6 +92,13 @@ export function buildSession(cat: Catalog, p: Progress, spec: SessionSpec): Item
     if (item) items.push(item);
   }
   if (!fixedMode) {
+    // exam focus: a few questions lifted from a generated exam scenario, every session
+    const sc = SCENARIOS[Math.floor(rng() * SCENARIOS.length)];
+    if (sc && (spec.chapter === undefined || spec.chapter >= 2)) {
+      const pool = sc.make(rng).filter((it) => spec.chapter === undefined || it.kind === "journal" || it.concept.includes(`.ch${spec.chapter}.`) || it.concept.includes(".ch2."));
+      const picks = shuffle(pool, rng).slice(0, Math.min(3, Math.max(1, Math.floor(size / 5))));
+      for (const it of picks) items.splice(Math.floor(rng() * (items.length + 1)), 0, it as Item);
+    }
     // sprinkle one sort or order set that touches the weakest picked concepts
     const ch = cat.chapters.filter((c) => spec.chapter === undefined || c.number === spec.chapter);
     const pickedIds = new Set(picked.map((c) => c.id));

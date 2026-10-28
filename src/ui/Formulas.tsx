@@ -13,6 +13,7 @@ export function Formulas({ path }: { path: string }) {
       <div className="eyebrow">Equations</div>
       <h1>{chNum ? `Chapter ${chNum} equations` : "Every equation"}</h1>
       <p className="muted small">Every equation, what it needs, and what it feeds. A "needs" that isn't given in a problem has to be computed first; that is the whole trick.</p>
+      <p className="small"><a href="#" onClick={(e) => { e.preventDefault(); go("#/exam"); }}>See the official exam formula sheet →</a></p>
       <div className="row" style={{ marginBottom: 8 }}>
         <button className="primary grow" onClick={() => go(`#/study?mode=formula${chNum ? `&ch=${chNum}` : ""}`)}>Drill all equations</button>
         <button className="grow" onClick={() => go(`#/study?mode=chain${chNum ? `&ch=${chNum}` : ""}`)}>Spot the steps</button>

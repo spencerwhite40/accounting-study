@@ -7,6 +7,7 @@ import { Session } from "./ui/Session";
 import { Browse } from "./ui/Browse";
 import { Stats } from "./ui/Stats";
 import { Formulas } from "./ui/Formulas";
+import { Exam } from "./ui/Exam";
 import { ConceptSheet } from "./ui/ConceptSheet";
 import { Toaster, Icons } from "./ui/bits";
 
@@ -83,6 +84,7 @@ export function App() {
   if (path?.startsWith("/study")) screen = <Session key={route} params={params} />;
   else if (path?.startsWith("/browse")) screen = <Browse path={path} />;
   else if (path?.startsWith("/formulas")) screen = <Formulas path={path} />;
+  else if (path?.startsWith("/exam")) screen = <Exam />;
   else if (path?.startsWith("/stats")) screen = <Stats />;
   else screen = <Home />;
 
@@ -93,7 +95,7 @@ export function App() {
         {screen}
         {!inSession && (
           <nav className="tabbar">
-            {([["#/", "Home", Icons.home, path === "/"], ["#/browse", "Browse", Icons.browse, !!path?.startsWith("/browse")], ["#/formulas", "Equations", Icons.formulas, !!path?.startsWith("/formulas")], ["#/stats", "Progress", Icons.stats, !!path?.startsWith("/stats")]] as const).map(([href, label, icon, on]) => (
+            {([["#/", "Home", Icons.home, path === "/"], ["#/browse", "Browse", Icons.browse, !!path?.startsWith("/browse")], ["#/formulas", "Equations", Icons.formulas, !!path?.startsWith("/formulas")], ["#/exam", "Exam", Icons.exam, !!path?.startsWith("/exam")], ["#/stats", "Progress", Icons.stats, !!path?.startsWith("/stats")]] as const).map(([href, label, icon, on]) => (
               <a key={href} href={href} onClick={(e) => { e.preventDefault(); go(href); }} className={on ? "on" : ""}>{icon}{label}</a>
             ))}
           </nav>

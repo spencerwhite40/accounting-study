@@ -131,6 +131,7 @@ export function round2(n: number): number {
 
 /** Human-readable worked solution lines for a step. */
 export function stepLines(step: CalcStep): string[] {
+  if (step.node === "exam") return step.inputs.map((i) => i.label);
   const parts = step.inputs.map((i) => `${i.label} = ${fmt(i.value, i.unit)}${i.derived ? " (from the previous step)" : ""}`);
   return [...parts, `${step.name} = ${fmt(step.result, step.unit)}`];
 }
