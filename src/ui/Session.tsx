@@ -83,6 +83,7 @@ export function Session({ params }: { params: URLSearchParams }) {
   const [items, setItems] = useState(initial);
   const [i, setI] = useState(0);
   const [hints, setHints] = useState(0);
+  const [hidden, setHidden] = useState<number[]>([]);
   const [done, setDone] = useState<Result | null>(null);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [itemKey, setItemKey] = useState(0);
@@ -115,6 +116,7 @@ export function Session({ params }: { params: URLSearchParams }) {
     closeCalculator();
     setDone(null);
     setHints(0);
+    setHidden([]);
     setI((k) => k + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -126,6 +128,7 @@ export function Session({ params }: { params: URLSearchParams }) {
       copy[i] = replacement;
       setItems(copy);
       setHints(0);
+      setHidden([]);
       setDone(null);
       setItemKey((k) => k + 1);
       haptic("tap");
@@ -154,7 +157,9 @@ export function Session({ params }: { params: URLSearchParams }) {
         {!done && <button className="ghost small" style={{ minHeight: 36 }} onClick={another}>Another</button>}
         {!done && hints < hintList.length && <button className="soft small" style={{ minHeight: 36 }} onClick={() => { setHints(hints + 1); haptic("tap"); }}>Hint {hints + 1}/{hintList.length}</button>}
       </div>
-      {hintList.slice(0, hints).map((h, k) => <div key={k} className="hint">{h}</div>)}
+      {hintList.slice(0, hints).map((h, k) => hidden.includes(k) ? null : (
+        <div key={k} className="hint"><span className="grow">{h}</span><button className="x" aria-label="Dismiss hint" onClick={() => setHidden([...hidden, k])}>✕</button></div>
+      ))}
       {context && <ContextCard ctx={context} />}
 
       <div key={`${item.id}:${itemKey}`} className="item-enter">
@@ -196,7 +201,7 @@ function Summary({ outcomes, empty, minutes, onAgain }: { outcomes: Outcome[]; e
     <div className="screen session center" style={{ paddingBottom: 24 }}>
       <div style={{ width: "100%" }}>
         <div className="card hero" style={{ textAlign: "center" }}>
-          <div className="eyebrow" style={{ color: "rgba(255,255,255,.75)" }}>{empty ? "Nothing to study here yet" : "Session complete"}</div>
+          <div className="eyebrow" style={{ color: "rgba(255,255,255,.75)" }}>{empty ? "Nothing here yet" : "Done"}</div>
           {!empty && (
             <div className="row" style={{ justifyContent: "center", marginTop: 12 }}>
               <Ring value={acc} label="right" color="var(--gold)" track="rgba(255,255,255,.18)" />
@@ -214,14 +219,14 @@ function Summary({ outcomes, empty, minutes, onAgain }: { outcomes: Outcome[]; e
         </div>
         {revisit.length > 0 && (
           <>
-            <h3>Missed this session</h3>
+            <h3>Missed</h3>
             <div className="card flat list" style={{ paddingTop: 2, paddingBottom: 2 }}>
               {revisit.map((id) => {
                 const m = mastery(progress, id);
                 return <a key={id} className="item" href="#" onClick={(e) => { e.preventDefault(); openConcept(id); }}><span className="row"><i className={`dot ${masteryClass(m)}`} />{catalog.concept(id).term}</span><span className="muted small">{Math.round(m * 100)}%</span></a>;
               })}
             </div>
-            <button className="soft block" onClick={() => go(`#/study?mode=mixed&concept=${encodeURIComponent(revisit[0] as string)}`)}>Practice the first one now</button>
+            <button className="soft block" onClick={() => go(`#/study?mode=mixed&concept=${encodeURIComponent(revisit[0] as string)}`)}>Practice first miss</button>
           </>
         )}
       </div>
@@ -237,45 +242,45 @@ function hintsFor(item: Item): string[] {
     case "mcq":
       if (item.kind === "mcq" && item.mode === "formula") {
         const n = catalog.graph.forConcept(c.id)[0];
-        return [`Chapter ${c.chapter}, ${c.topic}.`, n ? `When you need it: ${n.when}` : c.plain, n ? `It starts "${n.formula.split(" ").slice(0, 2).join(" ")}…"` : c.plain];
+        return [`Ch ${c.chapter} · ${c.topic}`, n ? n.when : c.plain, n ? `Starts "${n.formula.split(" ").slice(0, 2).join(" ")}…"` : c.plain];
       }
-      return [`Chapter ${c.chapter}, ${c.topic}.`, c.plain, `Starts with "${c.term.slice(0, 2)}…"`];
+      return [`Ch ${c.chapter} · ${c.topic}`, c.plain, `Starts "${c.term.slice(0, 2)}…"`];
     case "chain": {
       const n = catalog.graph.node(item.inst.target);
       const first = item.inst.chain[0];
       return [
-        `Start from the equation for what's asked: ${n.formula.split(/\.\s|\.$/)[0]}.`,
-        `Check each input of that equation against the givens. ${item.inst.hidden.length ? `${item.inst.hidden.join(" and ")} ${item.inst.hidden.length > 1 ? "are" : "is"} not in the list.` : ""}`,
-        first ? `The first thing to compute is ${first.name.toLowerCase()}.` : "",
+        `Asked-for equation: ${n.formula.split(/\.\s|\.$/)[0]}`,
+        `Check its inputs against the givens. ${item.inst.hidden.length ? `Missing: ${item.inst.hidden.join(", ")}.` : ""}`,
+        first ? `First: ${first.name.toLowerCase()}.` : "",
       ].filter(Boolean);
     }
     case "cloze": {
       const answers = item.parts.filter((p): p is { answers: string[] } => typeof p !== "string").map((p) => p.answers[0] ?? "");
       if (item.mode === "formula") {
         const n = catalog.graph.forConcept(c.id)[0];
-        return [n ? `When you need it: ${n.when}` : c.plain, n?.watch ?? c.plain, `First letters: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
+        return [n ? n.when : c.plain, n?.watch ?? c.plain, `Starts: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
       }
-      return [`Chapter ${c.chapter}, ${c.topic}.`, c.plain, `First letters: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
+      return [`Ch ${c.chapter} · ${c.topic}`, c.plain, `Starts: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
     }
     case "journal":
       return [
-        "Ask of each cost: does it belong to the factory (product cost → Raw Materials, WIP or Manufacturing Overhead) or to selling/admin (period cost → an expense account)?",
-        `${item.debits.length} debit${item.debits.length > 1 ? "s" : ""} and ${item.credits.length} credit${item.credits.length > 1 ? "s" : ""}. Debits must equal credits.`,
+        "Factory cost → Raw Materials, WIP or MOH. Selling/admin → an expense.",
+        `${item.debits.length} debit${item.debits.length > 1 ? "s" : ""}, ${item.credits.length} credit${item.credits.length > 1 ? "s" : ""}. Must balance.`,
         `Debit ${item.debits[0]?.account}.`,
       ];
     case "sort":
-      return [`Think about what each bucket is for, then place the obvious ones first.`, item.set.cards[0] ? `"${item.set.cards[0].text}" goes in ${item.set.buckets[item.set.cards[0].bucket]}.` : ""].filter(Boolean);
+      return [`Place the obvious ones first.`, item.set.cards[0] ? `"${item.set.cards[0].text}" → ${item.set.buckets[item.set.cards[0].bucket]}.` : ""].filter(Boolean);
     case "order":
-      return [item.set.explain ?? `Find the first step, then the last; the middle falls into place.`, `First step: ${item.set.steps[0]}`];
+      return [item.set.explain ?? `Find first and last; the middle follows.`, `First: ${item.set.steps[0]}`];
     case "calc": {
       const n = catalog.graph.nodes.get(item.inst.target);
       const last = item.inst.chain[item.inst.chain.length - 1];
       const hs = [`Formula: ${n?.formula ?? last?.formula ?? ""}`];
-      if (item.inst.hidden.length) hs.push(`Not every input is given. You need ${item.inst.hidden.join(" and ")} first; compute it from the figures that are given.`);
+      if (item.inst.hidden.length) hs.push(`Not given: ${item.inst.hidden.join(", ")}. Compute it first.`);
       else if (n) hs.push(n.watch ?? n.when);
       else if (last) hs.push(last.inputs[0]?.label ?? c.plain);
       const prev = item.inst.chain.length > 1 ? item.inst.chain[item.inst.chain.length - 2] : undefined;
-      if (prev) hs.push(`${prev.name} works out to ${fmtNum(prev.result, prev.unit)}.`);
+      if (prev) hs.push(`${prev.name} = ${fmtNum(prev.result, prev.unit)}.`);
       return hs;
     }
   }

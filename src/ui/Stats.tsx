@@ -37,7 +37,7 @@ export function Stats() {
   const doExport = async () => {
     try {
       await navigator.clipboard.writeText(exportJson(progress));
-      toast("Progress copied. Paste it into Import on another device.");
+      toast("Copied. Paste into Import on another device.");
     } catch {
       setShowExport(true);
     }
@@ -79,7 +79,7 @@ export function Stats() {
         <div className="row tiny muted" style={{ justifyContent: "space-between", marginTop: 4 }}><span>{days[0]?.day.slice(5)}</span><span>today</span></div>
       </div>
 
-      <h3>Coming up</h3>
+      <h3>Due</h3>
       <div className="card flat">
         <div className="row" style={{ justifyContent: "space-between" }}><span>Due now</span><b className="num">{dueNow}</b></div>
         {forecast.map((n, i) => (
@@ -90,10 +90,10 @@ export function Stats() {
         ))}
       </div>
 
-      <h3>Equations by rung</h3>
+      <h3>Equations</h3>
       <div className="card flat" style={{ padding: "8px 10px", overflowX: "auto" }}>
         <table className="matrix">
-          <thead><tr><th>Equation</th><th className="c">Know</th><th className="c">Spot</th><th className="c">Numbers</th></tr></thead>
+          <thead><tr><th>Equation</th><th className="c">Know</th><th className="c">Spot</th><th className="c">Solve</th></tr></thead>
           <tbody>
             {eqRows.map(({ c, ch }) => (
               <tr key={c.id} onClick={() => openConcept(c.id)}>
@@ -109,7 +109,7 @@ export function Stats() {
         </table>
       </div>
 
-      <h3>Accuracy by mode</h3>
+      <h3>By mode</h3>
       <div className="card flat">
         {[...byMode.entries()].sort((a, b) => (b[1].r + b[1].w) - (a[1].r + a[1].w)).map(([m, s]) => (
           <div key={m} className="row" style={{ padding: "5px 0" }}>
@@ -129,12 +129,12 @@ export function Stats() {
           </a>
         ))}
         {weakest.length === 0 && <span className="muted">Nothing yet.</span>}
-        {weakest.length > 0 && <button className="soft block" style={{ marginTop: 8 }} onClick={() => go(`#/study?mode=mixed&weak=1`)}>Drill the weakest</button>}
+        {weakest.length > 0 && <button className="soft block" style={{ marginTop: 8 }} onClick={() => go(`#/study?mode=mixed&weak=1`)}>Drill weakest</button>}
       </div>
 
       {confusions.length > 0 && (
         <>
-          <h3>Mixed up most</h3>
+          <h3>Mixed up</h3>
           <div className="card flat">
             {confusions.map(([k, n]) => {
               const [a, b] = k.split("|");
@@ -144,12 +144,12 @@ export function Stats() {
         </>
       )}
 
-      <h3>Your data</h3>
+      <h3>Data</h3>
       <div className="stack">
-        <button className="soft" onClick={doExport}>Copy progress to clipboard</button>
+        <button className="soft" onClick={doExport}>Copy progress</button>
         {showExport && <textarea rows={4} readOnly value={exportJson(progress)} onFocus={(e) => e.currentTarget.select()} />}
-        <textarea id="import-text" rows={2} placeholder="Paste exported progress here to import" onChange={(e) => { const t = e.target.value.trim(); if (t.startsWith("{")) { doImportText(t); e.target.value = ""; } }} />
-        <button className="soft" onClick={() => file.current?.click()}>Import from a file</button>
+        <textarea id="import-text" rows={2} placeholder="Paste progress to import" onChange={(e) => { const t = e.target.value.trim(); if (t.startsWith("{")) { doImportText(t); e.target.value = ""; } }} />
+        <button className="soft" onClick={() => file.current?.click()}>Import file</button>
         <input ref={file} type="file" accept="application/json" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files?.[0]; if (f) doImportText(await f.text()); }} />
         {!confirmReset && <button className="ghost" onClick={() => setConfirmReset(true)}>Reset progress</button>}
         {confirmReset && (

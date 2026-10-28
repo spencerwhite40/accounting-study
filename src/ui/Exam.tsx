@@ -22,22 +22,22 @@ export function Exam() {
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div>
             <div className="display" style={{ fontSize: 34 }}>{Math.round(overall.m * 100)}%</div>
-            <div className="small" style={{ opacity: .85 }}>of the study guide mastered · {Math.round(overall.covered * 100)}% of topics touched</div>
+            <div className="small" style={{ opacity: .85 }}>study guide mastered · {Math.round(overall.covered * 100)}% touched</div>
           </div>
         </div>
-        <p className="small" style={{ opacity: .9, marginTop: 10 }}>Multiple choice, many with calculations. The review activities below are the shape of the calculation questions: one scenario, many figures pulled from it.</p>
+        <p className="small" style={{ opacity: .9, marginTop: 10 }}>Multiple choice, mostly calculations. One scenario, many figures.</p>
       </div>
 
-      <h3>Practice an exam scenario</h3>
+      <h3>Scenarios</h3>
       {SCENARIOS.map((s) => (
         <button key={s.id} className="card flat block" style={{ margin: "8px 0" }} onClick={() => go(`#/study?mode=exam&scenario=${s.id}`)}>
           <div style={{ fontWeight: 700, fontSize: 16 }}>{s.title}</div>
           <div className="small muted" style={{ whiteSpace: "normal" }}>{s.sub}</div>
-          <div className="tiny muted" style={{ marginTop: 4 }}>New numbers every time · 12 to 20 questions · journal entries, balances, statements</div>
+          <div className="tiny muted" style={{ marginTop: 4 }}>New numbers each run · ~20 questions</div>
         </button>
       ))}
 
-      <h3>Study guide checklist</h3>
+      <h3>Study guide</h3>
       {STUDY_GUIDE.map((sec) => (
         <div key={sec.title} className="card flat">
           <div style={{ fontWeight: 700, marginBottom: 6 }}>{sec.title}</div>
@@ -56,14 +56,14 @@ export function Exam() {
         </div>
       ))}
 
-      <h3>The formula sheet you get in the exam</h3>
+      <h3>Formula sheet (given in the exam)</h3>
       {FORMULA_SHEET.map((f) => (
         <div key={f.title} className="card flat">
           <div style={{ fontWeight: 700, marginBottom: 6 }}>{f.title}</div>
           <div className="sol">{f.lines.join("\n")}</div>
         </div>
       ))}
-      <p className="tiny muted">Everything else on the exam you have to carry in: the equations screen lists them all. {catalog.graph.nodes.size} equations are tracked.</p>
+      <p className="tiny muted">Everything else you carry in. {catalog.graph.nodes.size} equations tracked.</p>
     </div>
   );
 }

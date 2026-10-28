@@ -12,11 +12,11 @@ export function Formulas({ path }: { path: string }) {
     <div className="screen">
       <div className="eyebrow">Equations</div>
       <h1>{chNum ? `Chapter ${chNum} equations` : "Every equation"}</h1>
-      <p className="muted small">Every equation, what it needs, and what it feeds. A "needs" that isn't given in a problem has to be computed first; that is the whole trick.</p>
-      <p className="small"><a href="#" onClick={(e) => { e.preventDefault(); go("#/exam"); }}>See the official exam formula sheet →</a></p>
+      <p className="muted small">What each needs and feeds. A need that isn't given gets computed first.</p>
+      <p className="small"><a href="#" onClick={(e) => { e.preventDefault(); go("#/exam"); }}>Exam formula sheet →</a></p>
       <div className="row" style={{ marginBottom: 8 }}>
-        <button className="primary grow" onClick={() => go(`#/study?mode=formula${chNum ? `&ch=${chNum}` : ""}`)}>Drill all equations</button>
-        <button className="grow" onClick={() => go(`#/study?mode=chain${chNum ? `&ch=${chNum}` : ""}`)}>Spot the steps</button>
+        <button className="primary grow" onClick={() => go(`#/study?mode=formula${chNum ? `&ch=${chNum}` : ""}`)}>Drill all</button>
+        <button className="grow" onClick={() => go(`#/study?mode=chain${chNum ? `&ch=${chNum}` : ""}`)}>Spot steps</button>
       </div>
       <div className="row wrap" style={{ marginBottom: 8 }}>
         <a className="chip" href="#" onClick={(e) => { e.preventDefault(); go("#/formulas"); }}>All</a>
@@ -32,13 +32,13 @@ export function Formulas({ path }: { path: string }) {
               <Mastery value={m} />
             </div>
             <div className="sol" style={{ margin: "6px 0" }}>{n.formula}</div>
-            <p className="small"><b>When you need it:</b> {n.when}</p>
-            {n.watch && <p className="small"><b>Watch out:</b> {n.watch}</p>}
-            {needs.length > 0 && <p className="small"><b>May need first:</b> {needs.map((d) => d.name).join(" · ")}</p>}
+            <p className="small"><b>When:</b> {n.when}</p>
+            {n.watch && <p className="small"><b>Watch:</b> {n.watch}</p>}
+            {needs.length > 0 && <p className="small"><b>Needs:</b> {needs.map((d) => d.name).join(" · ")}</p>}
             {feeds.length > 0 && <p className="small"><b>Feeds:</b> {feeds.map((d) => d.name).join(" · ")}</p>}
             <div className="row" style={{ marginTop: 8 }}>
-              <button className="grow" onClick={() => go(`#/study?mode=formula&concept=${encodeURIComponent(n.concept)}`)}>Drill</button>
-              <button className="grow" onClick={() => go(`#/study?mode=calc&concept=${encodeURIComponent(n.concept)}&node=${encodeURIComponent(n.id)}`)}>Numbers</button>
+              <button className="grow" onClick={() => go(`#/study?mode=formula&concept=${encodeURIComponent(n.concept)}`)}>Know</button>
+              <button className="grow" onClick={() => go(`#/study?mode=calc&concept=${encodeURIComponent(n.concept)}&node=${encodeURIComponent(n.id)}`)}>Solve</button>
               <button className="ghost" onClick={() => openConcept(n.concept)}>Term</button>
             </div>
           </div>

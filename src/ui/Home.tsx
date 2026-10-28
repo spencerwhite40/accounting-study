@@ -24,15 +24,15 @@ export function Home() {
     return { covered: vals.length / Math.max(1, eqConcepts.length), acc: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null };
   };
   const rungs = [
-    { n: 1, mode: "formula" as Mode, title: "Know the equation", sub: "name ↔ formula, fill the missing term" },
-    { n: 2, mode: "chain" as Mode, title: "Spot the steps", sub: "which equations a problem needs, in order" },
-    { n: 3, mode: "calc" as Mode, title: "Numbers", sub: "work the chain through to the answer" },
+    { n: 1, mode: "formula" as Mode, title: "Know it", sub: "name ↔ formula" },
+    { n: 2, mode: "chain" as Mode, title: "Spot it", sub: "which equations, in order" },
+    { n: 3, mode: "calc" as Mode, title: "Solve it", sub: "numbers to the answer" },
   ].map((r) => ({ ...r, ...rung(r.mode) }));
   const current = rungs.find((r) => r.acc === null || r.acc < 0.7) ?? rungs[2];
 
   const headline = total.due > 0
-    ? `${total.due} ${total.due === 1 ? "concept is" : "concepts are"} due for review`
-    : seen === 0 ? "Nothing studied yet. Start with a short session." : newLeft > 0 ? `Nothing due. ${newLeft} new concepts available today.` : "All caught up for today.";
+    ? `${total.due} due`
+    : seen === 0 ? "Start here." : newLeft > 0 ? `Nothing due · ${newLeft} new today` : "Caught up.";
 
   const modes: Mode[] = ["flashcard", "sort", "mcq", "cloze", "order"];
   return (
@@ -46,23 +46,23 @@ export function Home() {
           <div className="grow">
             <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{headline}</div>
             <div className="muted small" style={{ marginTop: 6 }}>
-              {seen}/{all.length} concepts seen · {ret === null ? "no retention data yet" : `${Math.round(ret * 100)}% would stick right now`}
+              {seen}/{all.length} seen{ret === null ? "" : ` · ${Math.round(ret * 100)}% retained`}
             </div>
-            <div className="muted small">{st > 0 ? `${st}-day streak` : "No streak yet"}{tomorrow ? ` · ${tomorrow} due tomorrow` : ""}</div>
+            <div className="muted small">{st > 0 ? `${st}-day streak` : ""}{tomorrow ? `${st > 0 ? " · " : ""}${tomorrow} due tomorrow` : ""}</div>
           </div>
         </div>
         <button className="primary block" style={{ marginTop: 14, minHeight: 54, fontSize: 17 }} onClick={() => go("#/study?mode=mixed")}>
-          Exam prep session · {planSize} items
+          Study · {planSize} items
         </button>
         <div className="row" style={{ marginTop: 8 }}>
           <button className="soft grow" onClick={() => go("#/study?mode=mixed&cram=1")}>Cram</button>
-          <button className="soft grow" onClick={() => go(`#/study?mode=${current?.mode ?? "formula"}`)}>Equations · rung {current?.n ?? 1}</button>
+          <button className="soft grow" onClick={() => go(`#/study?mode=${current?.mode ?? "formula"}`)}>Rung {current?.n ?? 1}</button>
         </div>
       </div>
 
       <h3>Exam 1</h3>
       <div className="card flat">
-        <div className="row"><div className="grow"><div style={{ fontWeight: 700 }}>Exam-style scenarios</div><div className="small muted">Job costing and ABC cost flows like the review activities: journal entries, balances, over/under applied, statements.</div></div></div>
+        <div className="row"><div className="grow"><div style={{ fontWeight: 700 }}>Review-activity scenarios</div><div className="small muted">Journal entries · balances · over/under · statements</div></div></div>
         <div className="row" style={{ marginTop: 10 }}>
           <button className="primary grow" style={{ whiteSpace: "normal", padding: "10px 8px" }} onClick={() => go("#/study?mode=exam&scenario=job")}>Job costing flow</button>
           <button className="primary grow" style={{ whiteSpace: "normal", padding: "10px 8px" }} onClick={() => go("#/study?mode=exam&scenario=abc")}>ABC flow</button>
@@ -87,7 +87,7 @@ export function Home() {
             </div>
           ))}
         </div>
-        <button className="ghost block small" style={{ marginTop: 6, textAlign: "center" }} onClick={() => go("#/formulas")}>See every equation and what it feeds →</button>
+        <button className="ghost block small" style={{ marginTop: 6, textAlign: "center" }} onClick={() => go("#/formulas")}>All equations →</button>
       </div>
 
       <h3>Chapters</h3>
@@ -110,7 +110,7 @@ export function Home() {
             </div>
             <div style={{ margin: "10px 0 8px" }}><Heat values={vals} /></div>
             <div className="row">
-              <button className="primary grow" onClick={() => go(`#/study?mode=mixed&ch=${ch.number}`)}>{d.due ? `Review ${d.due}` : d.fresh ? "Learn" : "Practice"}</button>
+              <button className="primary grow" onClick={() => go(`#/study?mode=mixed&ch=${ch.number}`)}>{d.due ? `Review ${d.due}` : "Study"}</button>
               <button className="soft" onClick={() => go(`#/study?mode=mixed&ch=${ch.number}&cram=1`)}>Cram</button>
               <button className="soft" onClick={() => go(`#/browse/${ch.number}`)}>Terms</button>
             </div>
@@ -118,7 +118,7 @@ export function Home() {
         );
       })}
 
-      <h3>Practice one way</h3>
+      <h3>One mode</h3>
       <div className="grid2">
         {modes.map((m) => <button key={m} className="soft" onClick={() => go(`#/study?mode=${m}`)}>{MODE_LABEL[m]}</button>)}
       </div>

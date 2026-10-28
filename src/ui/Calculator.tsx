@@ -140,9 +140,9 @@ export function CalculatorSheet() {
   const keys = ["C", "(", ")", "⌫", "7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", "0", ".", "%", "+"];
   return (
     <>
-      <div className="calc-sheet" role="dialog" aria-label="Calculator">
+      <div className="calc-sheet" role="dialog" aria-label="Calculator" onTouchStart={(e) => { (e.currentTarget as HTMLElement).dataset.y = String(e.touches[0]?.clientY ?? 0); }} onTouchEnd={(e) => { const y0 = Number((e.currentTarget as HTMLElement).dataset.y ?? 0); const y = e.changedTouches[0]?.clientY ?? 0; if (y - y0 > 80 && (e.target as HTMLElement).closest(".calc-top, .calc-expr, .calc-result")) closeCalculator(); }}>
         <div className="calc-top">
-          <span className="eyebrow">Calculator · tap a given to drop it in</span>
+          <span className="eyebrow">Tap a given to drop it in</span>
           <button className="ghost icon" style={{ minHeight: 36, minWidth: 36 }} onClick={closeCalculator} aria-label="Close">✕</button>
         </div>
         <div className="calc-expr">{state.expr || <span className="muted">0</span>}</div>
@@ -157,7 +157,7 @@ export function CalculatorSheet() {
         <div className="calc-keys">
           {keys.map((k) => <button key={k} className={`calc-key ${/[÷×−+]/.test(k) ? "op" : ""} ${k === "C" || k === "⌫" ? "fn" : ""}`} onClick={() => key(k)}>{k}</button>)}
           <button className="calc-key eq" onClick={() => key("=")}>=</button>
-          <button className="calc-key insert" disabled={result === null} onClick={insert}>Use as answer ↵</button>
+          <button className="calc-key insert" disabled={result === null} onClick={insert}>Use ↵</button>
         </div>
       </div>
     </>

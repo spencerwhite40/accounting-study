@@ -68,8 +68,8 @@ export function jobCostingScenario(rng: () => number): ExamItem[] {
   const noi = gm - sa;
 
   const ctx: ScenarioContext = {
-    title: "Job costing cost flow (exam review style)",
-    intro: `Reeder-style problem. Beginning balances: Raw Materials ${money(begRM)}, Work in Process ${money(begWIP)}, Finished Goods ${money(begFG)}. Overhead is applied using direct labor cost; the predetermined rate was based on estimated manufacturing overhead of ${money(estMOH)} and estimated direct labor cost of ${money(estDL)}.`,
+    title: "Job costing flow",
+    intro: `Beginning balances: Raw Materials ${money(begRM)}, Work in Process ${money(begWIP)}, Finished Goods ${money(begFG)}. Overhead is applied using direct labor cost; the predetermined rate was based on estimated manufacturing overhead of ${money(estMOH)} and estimated direct labor cost of ${money(estDL)}.`,
     lines: [
       `a. Raw materials purchased on account, ${money(purch)}.`,
       `b. Raw materials issued to production, ${money(issued)}: ${money(dm)} direct and ${money(im)} indirect.`,
@@ -142,8 +142,8 @@ export function abcScenario(rng: () => number): ExamItem[] {
   const sa = adminSal + comm + travel + adv + depSA;
   const ni = gp - sa;
   const ctx: ScenarioContext = {
-    title: "Activity-based costing cost flow (exam review style)",
-    intro: `Placer-style problem. ABC is used for external reports. Beginning balances: Raw Materials ${money(begRM)}, Work in Process ${money(begWIP)}, Finished Goods ${money(begFG)}. Activity cost pools for the year: ` + pools.map((p) => `${p.name} (${p.measure}): estimated overhead ${money(p.est)}, expected activity ${p.exp.toLocaleString()} ${p.unit}s`).join("; ") + ".",
+    title: "ABC flow",
+    intro: `ABC used for external reports. Beginning balances: Raw Materials ${money(begRM)}, Work in Process ${money(begWIP)}, Finished Goods ${money(begFG)}. Activity cost pools for the year: ` + pools.map((p) => `${p.name} (${p.measure}): estimated overhead ${money(p.est)}, expected activity ${p.exp.toLocaleString()} ${p.unit}s`).join("; ") + ".",
     lines: [
       `a. Raw materials purchased on account, ${money(purch)}.`,
       `b. Raw materials withdrawn for production, ${money(issued)} (${money(dm)} direct, ${money(im)} indirect).`,
@@ -178,6 +178,6 @@ export function abcScenario(rng: () => number): ExamItem[] {
 }
 
 export const SCENARIOS = [
-  { id: "job", title: "Job costing cost flow", sub: "journal entries, T-accounts, over/under applied, COGM, income statement", make: jobCostingScenario },
-  { id: "abc", title: "Activity-based costing cost flow", sub: "activity rates, total applied overhead, over/under applied, net income", make: abcScenario },
+  { id: "job", title: "Job costing flow", sub: "entries · T-accounts · over/under · COGM · income statement", make: jobCostingScenario },
+  { id: "abc", title: "ABC flow", sub: "activity rates · total applied · over/under · net income", make: abcScenario },
 ];

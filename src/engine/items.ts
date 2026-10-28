@@ -9,9 +9,9 @@ export const MODE_LABEL: Record<Mode, string> = {
   cloze: "Fill the blank",
   sort: "Sort & organize",
   order: "Put in order",
-  formula: "Know the equation",
-  chain: "Spot the steps",
-  calc: "Numbers",
+  formula: "Know it",
+  chain: "Spot it",
+  calc: "Solve it",
   journal: "Journal entry",
 };
 

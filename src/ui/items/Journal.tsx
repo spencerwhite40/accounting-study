@@ -55,7 +55,7 @@ export function Journal({ item, hints, onDone }: ItemProps) {
       <div className="card">
         <div className="eyebrow">Journal entry</div>
         <p style={{ fontWeight: 600, marginTop: 6 }}>{j.text.split(/(\$[\d,]+)/).map((part, i) => /^\$[\d,]+$/.test(part) ? <button key={i} className="term" style={{ fontWeight: 700 }} onClick={() => pushNumber(Number(part.replace(/[$,]/g, "")))}>{part}</button> : <span key={i}>{part}</span>)}</p>
-        <p className="small muted">Mark each account Dr or Cr and enter its amount. Leave accounts that aren't part of this entry blank.</p>
+        <p className="small muted">Dr or Cr each account used, then the amount.</p>
       </div>
       <div className="stack">
         {shown.map((acct) => {
@@ -74,8 +74,8 @@ export function Journal({ item, hints, onDone }: ItemProps) {
               )}
               {checked && (s || e.side) && (
                 <div className="small" style={{ flexBasis: "100%" }}>
-                  {e.side ? <>Correct: <b>{e.side === "dr" ? "Debit" : "Credit"} {fmt(e.amount, "$")}</b></> : <>Not part of this entry</>}
-                  {s && !ok && <span className="muted"> · you had {s === "dr" ? "Dr" : "Cr"} {amts[acct] || "no amount"}</span>}
+                  {e.side ? <><b>{e.side === "dr" ? "Dr" : "Cr"} {fmt(e.amount, "$")}</b></> : <>Not in this entry</>}
+                  {s && !ok && <span className="muted"> · yours: {s === "dr" ? "Dr" : "Cr"} {amts[acct] || "—"}</span>}
                 </div>
               )}
             </div>
@@ -85,14 +85,14 @@ export function Journal({ item, hints, onDone }: ItemProps) {
       {!checked && (
         <>
           <div className="row small muted" style={{ justifyContent: "space-between", padding: "6px 4px" }}>
-            <span>Debits {fmt(drTotal, "$")}</span><span className={drTotal && drTotal === crTotal ? "pill ok" : "pill"}>{drTotal === crTotal && drTotal ? "balanced" : "must balance"}</span><span>Credits {fmt(crTotal, "$")}</span>
+            <span>Debits {fmt(drTotal, "$")}</span><span className={drTotal && drTotal === crTotal ? "pill ok" : "pill"}>{drTotal === crTotal && drTotal ? "balanced" : "unbalanced"}</span><span>Credits {fmt(crTotal, "$")}</span>
           </div>
           <button className="primary block" disabled={!anyChosen} onClick={submit}>Check entry</button>
         </>
       )}
       {checked && (
         <>
-          <div className={`feedback ${shown.every(rowOk) ? "ok" : "bad"}`}>{shown.every(rowOk) ? "Entry is right" : "Not quite"}</div>
+          <div className={`feedback ${shown.every(rowOk) ? "ok" : "bad"}`}>{shown.every(rowOk) ? "Right" : "Not quite"}</div>
           <div className="explain">
             <div className="sol">{[...j.debits.map((l) => `${l.account.padEnd(28)} ${fmt(l.amount, "$").padStart(12)}`), ...j.credits.map((l) => `    ${l.account.padEnd(24)} ${"".padStart(12)} ${fmt(l.amount, "$").padStart(12)}`)].join("\n")}</div>
             <p className="small" style={{ marginTop: 8 }}>{j.explain}</p>

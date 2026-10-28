@@ -56,14 +56,14 @@ export function Flashcard({ item, hints, onDone }: ItemProps) {
           onClick={() => { if (!drag && graded === null) { setFlipped(true); haptic("tap"); } }}
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         >
-          <div className="face front"><span className="lbl">Prompt · tap to flip</span><div><TermText text={item.front} exclude={[item.concept]} /></div></div>
+          <div className="face front"><span className="lbl">Tap to flip</span><div><TermText text={item.front} exclude={[item.concept]} /></div></div>
           <div className="face back"><span className="lbl">{verdict ?? "Answer"}</span><div><TermText text={item.back} /></div></div>
         </div>
       </div>
       {!flipped && <button className="primary block" style={{ marginTop: 10 }} onClick={() => setFlipped(true)}>Show answer</button>}
       {flipped && graded === null && (
         <>
-          <div className="swipe-hint"><span>◀ swipe: Again</span><span>▲ Easy</span><span>Good: swipe ▶</span></div>
+          <div className="swipe-hint"><span>◀ Again</span><span>▲ Easy</span><span>Good ▶</span></div>
           <div className="grades" style={{ marginTop: 8 }}>
             <button className="g1" onClick={() => grade(Rating.Again)}>Again<span>{iv.again}</span></button>
             <button className="g2" onClick={() => grade(Rating.Hard)}>Hard<span>{iv.hard}</span></button>
@@ -74,7 +74,7 @@ export function Flashcard({ item, hints, onDone }: ItemProps) {
       )}
       {graded !== null && (
         <div className={`feedback ${graded === Rating.Again ? "bad" : graded === Rating.Hard ? "hard" : "ok"}`}>
-          {labels[graded]}{hints ? ` (−${hints} for hints)` : ""} · next in {graded === 1 ? iv.again : graded === 2 ? iv.hard : graded === 3 ? iv.good : iv.easy}
+          {labels[graded]}{hints ? ` (−${hints} hints)` : ""} · next {graded === 1 ? iv.again : graded === 2 ? iv.hard : graded === 3 ? iv.good : iv.easy}
         </div>
       )}
     </>

@@ -9,7 +9,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.plantwide-rate", chapter: ch, concept: id("plantwide-overhead-rate"), name: "Plantwide overhead rate", unit: "$/hr",
     formula: "Total estimated manufacturing overhead ÷ Total estimated allocation base (usually DL hours)",
-    when: "Same mechanics as chapter 3's predetermined rate, applied to the whole plant. Needed for unit cost under the conventional system and for the ABC comparison.",
+    when: "Ch 3's rate for the whole plant. Feeds conventional unit cost and the ABC comparison.",
     inputs: { estMOH: { label: "Estimated total manufacturing overhead", unit: "$" }, estDLH: { label: "Estimated total direct labor hours", unit: "hrs" } },
     gen: (rng) => { const rate = r(rng, 10, 60, 1); const estDLH = r(rng, 10, 50, 1) * 1000; return { estMOH: rate * estDLH, estDLH }; },
     compute: (v) => (v.estMOH ?? 0) / (v.estDLH || 1),
@@ -26,7 +26,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.activity-rate", chapter: ch, concept: id("activity-based-costing"), name: "Activity cost allocation rate", unit: "$",
     formula: "Estimated total cost of the activity (its cost pool) ÷ Estimated total quantity of its allocation base",
-    when: "ABC step 3. One rate per activity. Needed before any overhead can be allocated to a product under ABC.",
+    when: "ABC step 3: one rate per activity, before any allocation.",
     watch: "The denominator is the TOTAL base across all products, not just one product's usage.",
     inputs: { poolCost: { label: "Estimated cost of the machine-setup activity", unit: "$" }, usageA: { label: "Setups expected for Product A", unit: "units" }, usageB: { label: "Setups expected for Product B", unit: "units" } },
     gen: (rng) => { const rate = r(rng, 20, 120, 1); const usageA = r(rng, 500, 4000, 100); const usageB = r(rng, 500, 4000, 100); return { poolCost: rate * (usageA + usageB), usageA, usageB }; },
@@ -45,8 +45,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.abc-total-applied", chapter: ch, concept: id("activity-based-costing"), name: "Total overhead applied under ABC (all pools)", unit: "$",
     formula: "Σ over every activity pool of (activity rate × actual activity)",
-    when: "The applied-overhead entry under ABC (debit WIP, credit MOH) and the first half of the over/under-applied comparison. The exam review problem has five pools.",
-    watch: "Use ACTUAL activity with each pool's own rate; then add the pools. Compare the total with actual overhead, not pool by pool.",
+    when: "ABC's applied-OH entry (Dr WIP, Cr MOH); compare the total with actual for over/under. Exam review has five pools.",
+    watch: "ACTUAL activity × each pool's rate, then add. Compare the total, not pool by pool.",
     inputs: { r1: { label: "Machining rate per machine-hour", unit: "$" }, a1: { label: "Actual machine-hours", unit: "hrs" }, r2: { label: "Purchase-order rate per order", unit: "$" }, a2: { label: "Actual orders", unit: "units" }, r3: { label: "Testing rate per test", unit: "$" }, a3: { label: "Actual tests", unit: "units" } },
     gen: (rng) => ({ r1: r(rng, 120, 240, 10), a1: r(rng, 800, 1500, 50), r2: r(rng, 100, 200, 10), a2: r(rng, 400, 800, 20), r3: r(rng, 400, 800, 50), a3: r(rng, 200, 300, 5) }),
     compute: (v) => (v.r1 ?? 0) * (v.a1 ?? 0) + (v.r2 ?? 0) * (v.a2 ?? 0) + (v.r3 ?? 0) * (v.a3 ?? 0),
@@ -70,8 +70,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.cost-shift", chapter: ch, concept: id("cost-distortion"), name: "Cost distortion per unit (ABC minus plantwide)", unit: "$/unit",
     formula: "ABC unit cost − Plantwide unit cost. Positive: the product was UNDERcosted by the plantwide rate; negative: it was OVERcosted.",
-    when: "Shows which products the single rate got wrong. Low-volume, complex products usually come out undercosted.",
-    watch: "You may have to build both unit costs first. DM and DL cancel out, so the difference equals ABC overhead per unit − plantwide overhead per unit.",
+    when: "Which products the single rate got wrong. Low-volume, complex ones are usually undercosted.",
+    watch: "Build both unit costs first. DM and DL cancel; the gap is OH per unit, ABC − plantwide.",
     inputs: { abc: { label: "Unit cost under ABC", unit: "$/unit", from: "ch4.unit-cost-abc" }, pw: { label: "Unit cost using the plantwide rate", unit: "$/unit", from: "ch4.unit-cost-plantwide" } },
     gen: (rng, f) => ({ abc: f.abc ?? r(rng, 40, 200, 0.5), pw: f.pw ?? r(rng, 40, 200, 0.5) }),
     compute: (v) => (v.abc ?? 0) - (v.pw ?? 0),
@@ -80,7 +80,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.conformance", chapter: ch, concept: id("cost-of-quality-report"), name: "Total conformance costs", unit: "$",
     formula: "Prevention costs + Appraisal costs",
-    when: "Costs of making sure the product meets its design. Compared with nonconformance costs on the cost of quality report.",
+    when: "Cost of meeting the design. Compared with nonconformance on the quality report.",
     inputs: { prev: { label: "Prevention costs (training, supplier screening, redesign)", unit: "$" }, appr: { label: "Appraisal costs (inspection, testing)", unit: "$" } },
     gen: (rng) => ({ prev: r(rng, 50, 500, 5) * 1000, appr: r(rng, 20, 300, 5) * 1000 }),
     compute: (v) => (v.prev ?? 0) + (v.appr ?? 0),
@@ -88,7 +88,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.nonconformance", chapter: ch, concept: id("cost-of-quality-report"), name: "Total nonconformance costs", unit: "$",
     formula: "Internal failure costs + External failure costs",
-    when: "Costs because the product failed to meet its design. Usually far larger than conformance costs, which is why prevention pays.",
+    when: "Cost of failing the design. Usually dwarfs conformance cost, which is why prevention pays.",
     inputs: { int: { label: "Internal failure costs (scrap, rework, downtime)", unit: "$" }, ext: { label: "External failure costs (warranty, recalls, lost sales)", unit: "$" } },
     gen: (rng) => ({ int: r(rng, 50, 400, 5) * 1000, ext: r(rng, 100, 800, 5) * 1000 }),
     compute: (v) => (v.int ?? 0) + (v.ext ?? 0),
@@ -96,8 +96,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.quality-net", chapter: ch, concept: id("cost-of-quality-report"), name: "Net savings from a quality initiative", unit: "$",
     formula: "(Internal failure savings + External failure savings) − (Added prevention costs + Added appraisal costs)",
-    when: "The bottom line of a cost of quality report: should the company spend on prevention and appraisal?",
-    watch: "Spending goes on the conformance side; savings come from the nonconformance side. Don't mix them.",
+    when: "Quality report bottom line: is prevention + appraisal worth it?",
+    watch: "Spend on conformance; save on nonconformance. Don't mix.",
     inputs: { addConf: { label: "Added conformance (prevention + appraisal) spending", unit: "$" }, saveNon: { label: "Expected nonconformance (failure) cost savings", unit: "$" } },
     gen: (rng, f) => ({ addConf: f.addConf ?? r(rng, 100, 600, 5) * 1000, saveNon: f.saveNon ?? r(rng, 200, 900, 5) * 1000 }),
     compute: (v) => (v.saveNon ?? 0) - (v.addConf ?? 0),
@@ -106,7 +106,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch4.dept-rate", chapter: ch, concept: id("departmental-overhead-rates"), name: "Departmental overhead rate", unit: "$/hr",
     formula: "Estimated overhead of the department ÷ Estimated allocation base of that department",
-    when: "Middle ground between one plantwide rate and ABC. Each department (machining, assembly) gets its own rate and base.",
+    when: "Between plantwide and ABC: one rate and base per department.",
     inputs: { deptMOH: { label: "Estimated overhead for the machining department", unit: "$" }, deptMH: { label: "Estimated machine hours in machining", unit: "hrs" } },
     gen: (rng) => { const rate = r(rng, 10, 80, 1); const deptMH = r(rng, 5, 40, 1) * 1000; return { deptMOH: rate * deptMH, deptMH }; },
     compute: (v) => (v.deptMOH ?? 0) / (v.deptMH || 1),

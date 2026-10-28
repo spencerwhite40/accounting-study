@@ -9,8 +9,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.pohr", chapter: ch, concept: id("predetermined-overhead-rate"), name: "Predetermined overhead rate", unit: "$/hr",
     formula: "Estimated total manufacturing overhead ÷ Estimated total allocation base (DL hours, DL cost or machine hours)",
-    when: "Computed BEFORE the period from estimates. Every applied-overhead figure, every job cost, and the over/under-applied amount all start here.",
-    watch: "Both numerator and denominator are ESTIMATES. Using actual figures is the classic mistake.",
+    when: "Set BEFORE the period from estimates. Applied OH, job cost and over/under all start here.",
+    watch: "Both parts are ESTIMATES. Actuals here is the classic mistake.",
     inputs: { estMOH: { label: "Estimated total manufacturing overhead for the year", unit: "$" }, estBase: { label: "Estimated total direct labor hours for the year", unit: "hrs" } },
     gen: (rng) => { const rate = r(rng, 4, 40, 0.5); const estBase = r(rng, 5, 60, 0.5) * 1000; return { estMOH: Math.round(rate * estBase), estBase }; },
     compute: (v) => (v.estMOH ?? 0) / (v.estBase || 1),
@@ -18,8 +18,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.applied", chapter: ch, concept: id("applied-overhead"), name: "Manufacturing overhead applied", unit: "$",
     formula: "Predetermined overhead rate × ACTUAL amount of the allocation base used",
-    when: "The overhead charged to jobs (debit WIP, credit MOH). Needed for job cost, and compared with actual overhead to find over/under-applied.",
-    watch: "Rate is predetermined (estimates), but the hours it's multiplied by are ACTUAL.",
+    when: "OH charged to jobs (Dr WIP, Cr MOH). Feeds job cost; compare with actual for over/under.",
+    watch: "Rate from estimates; hours are ACTUAL.",
     inputs: { rate: { label: "Predetermined overhead rate", unit: "$/hr", from: "ch3.pohr" }, actualBase: { label: "Actual direct labor hours worked", unit: "hrs" } },
     gen: (rng, f) => ({ rate: f.rate ?? r(rng, 4, 40, 0.5), actualBase: r(rng, 5, 60, 0.1) * 1000 }),
     compute: (v) => (v.rate ?? 0) * (v.actualBase ?? 0),
@@ -27,8 +27,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.job-cost", chapter: ch, concept: id("job-cost-record"), name: "Total cost of a job", unit: "$",
     formula: "Direct materials + Direct labor + Applied overhead (rate × the job's hours)",
-    when: "What moves from WIP to finished goods when the job is done. Divide by units for unit cost; it's also the basis for cost-plus pricing.",
-    watch: "Overhead on the job is APPLIED using the rate, never the actual overhead bill.",
+    when: "Moves WIP → FG at completion. ÷ units for unit cost; basis for cost-plus pricing.",
+    watch: "Job OH is APPLIED via the rate, never actual.",
     inputs: { dm: { label: "Direct materials charged to the job", unit: "$" }, dl: { label: "Direct labor charged to the job", unit: "$" }, rate: { label: "Predetermined overhead rate", unit: "$/hr", from: "ch3.pohr" }, hours: { label: "Direct labor hours on the job", unit: "hrs" } },
     gen: (rng, f) => ({ dm: r(rng, 200, 5000, 10), dl: r(rng, 100, 3000, 10), rate: f.rate ?? r(rng, 4, 40, 0.5), hours: r(rng, 5, 200, 1) }),
     compute: (v) => (v.dm ?? 0) + (v.dl ?? 0) + (v.rate ?? 0) * (v.hours ?? 0),
@@ -36,7 +36,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.unit-cost", chapter: ch, concept: id("job-cost-record"), name: "Cost per unit on a job", unit: "$/unit",
     formula: "Total job cost ÷ Units produced on the job",
-    when: "Pricing and finished-goods valuation. The job's total cost must be built first if it isn't given.",
+    when: "Pricing and FG valuation. Build total job cost first if not given.",
     inputs: { total: { label: "Total job cost", unit: "$", from: "ch3.job-cost" }, units: { label: "Units produced on the job", unit: "units" } },
     gen: (rng, f) => ({ total: f.total ?? r(rng, 500, 9000, 10), units: r(rng, 2, 50, 1) }),
     compute: (v) => (v.total ?? 0) / (v.units || 1),
@@ -44,8 +44,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.over-under", chapter: ch, concept: id("underallocated-overhead"), name: "Over- or under-applied overhead (amount)", unit: "$",
     formula: "Applied overhead − Actual overhead. Positive = overapplied (credit balance); negative = underapplied (debit balance). Give the amount as a positive number and state the direction.",
-    when: "Year-end: the balance left in the MOH account. It's closed to COGS (or prorated to WIP, FG and COGS if large).",
-    watch: "Applied uses the predetermined rate × actual hours, so you may need to compute the rate and the applied amount first. Debit balance left = underapplied.",
+    when: "Year-end MOH balance. Closed to COGS (prorated to WIP, FG, COGS if large).",
+    watch: "Applied = rate × actual hours; you may need both first. Debit balance left = underapplied.",
     inputs: { applied: { label: "Overhead applied during the year", unit: "$", from: "ch3.applied" }, actual: { label: "Actual manufacturing overhead incurred", unit: "$" } },
     gen: (rng, f) => { const applied = f.applied ?? r(rng, 50, 600, 1) * 1000; const actual = Math.round(applied * (0.93 + rng() * 0.14) / 100) * 100; return { applied, actual: actual === applied ? actual + 1000 : actual }; },
     compute: (v) => Math.abs((v.applied ?? 0) - (v.actual ?? 0)),
@@ -54,8 +54,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.adj-cogs", chapter: ch, concept: id("underallocated-overhead"), name: "Cost of goods sold after closing the overhead variance", unit: "$",
     formula: "Unadjusted COGS + Underapplied overhead, or − Overapplied overhead",
-    when: "The final COGS reported. Underapplied means jobs were undercosted, so COGS goes UP; overapplied means COGS comes DOWN.",
-    watch: "Direction is everything: a debit balance (underapplied) is closed with a debit to COGS, increasing it.",
+    when: "Reported COGS. Underapplied → COGS up. Overapplied → COGS down.",
+    watch: "Debit balance (underapplied) closes with Dr COGS, raising it.",
     inputs: { cogs: { label: "Unadjusted cost of goods sold", unit: "$" }, applied: { label: "Overhead applied during the year", unit: "$", from: "ch3.applied" }, actual: { label: "Actual manufacturing overhead incurred", unit: "$" } },
     gen: (rng, f) => { const applied = f.applied ?? r(rng, 50, 600, 1) * 1000; const actual = Math.round(applied * (0.93 + rng() * 0.14) / 100) * 100; return { cogs: r(rng, 400, 3000, 5) * 1000, applied, actual }; },
     compute: (v) => (v.cogs ?? 0) + ((v.actual ?? 0) - (v.applied ?? 0)),
@@ -63,7 +63,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.pohr-dlcost", chapter: ch, concept: id("predetermined-overhead-rate"), name: "Predetermined overhead rate as % of direct labor cost", unit: "%",
     formula: "Estimated manufacturing overhead ÷ Estimated direct labor cost × 100",
-    when: "When direct labor COST (not hours) is the base, the rate is a percentage. Apply it by multiplying by actual direct labor cost. The exam review problem uses this.",
+    when: "Base is direct labor COST, so the rate is a %. Apply: rate × actual DL cost. Used in the exam review.",
     watch: "150% of DL cost means applied overhead = 1.5 × direct labor dollars.",
     inputs: { estMOH: { label: "Estimated total manufacturing overhead", unit: "$" }, estDL: { label: "Estimated total direct labor cost", unit: "$" } },
     gen: (rng) => { const pct = r(rng, 100, 250, 25); const estDL = r(rng, 150, 400, 5) * 1000; return { estMOH: Math.round(estDL * pct / 100), estDL }; },
@@ -72,7 +72,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.applied-dlcost", chapter: ch, concept: id("applied-overhead"), name: "Overhead applied using a % of direct labor cost", unit: "$",
     formula: "Rate (% of DL cost) × Actual direct labor cost",
-    when: "The applied-overhead entry (debit WIP, credit MOH) when the base is direct labor dollars.",
+    when: "The applied-OH entry (Dr WIP, Cr MOH) with a DL-dollar base.",
     inputs: { pct: { label: "Predetermined rate as % of direct labor cost", unit: "%", from: "ch3.pohr-dlcost" }, dl: { label: "Actual direct labor cost", unit: "$" } },
     gen: (rng, f) => ({ pct: f.pct ?? r(rng, 100, 250, 25), dl: r(rng, 150, 400, 5) * 1000 }),
     compute: (v) => ((v.pct ?? 0) / 100) * (v.dl ?? 0),
@@ -80,8 +80,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.actual-moh", chapter: ch, concept: "ac241.ch2.manufacturing-overhead", name: "Actual manufacturing overhead (debits to the MOH account)", unit: "$",
     formula: "Indirect materials + Indirect labor + Factory utilities + Factory insurance + Factory depreciation (+ other factory costs)",
-    when: "Needed to find over/under-applied overhead: compare it with applied. Only FACTORY costs; selling and admin items are period expenses.",
-    watch: "Advertising, sales commissions, office depreciation and admin salaries never go into MOH.",
+    when: "Compare with applied for over/under. Factory costs only; selling/admin are period expenses.",
+    watch: "Advertising, commissions, office depreciation, admin salaries: never MOH.",
     inputs: { im: { label: "Indirect materials", unit: "$" }, il: { label: "Indirect labor", unit: "$" }, util: { label: "Factory utilities", unit: "$" }, ins: { label: "Factory share of expired insurance", unit: "$" }, dep: { label: "Depreciation on factory assets", unit: "$" } },
     gen: (rng) => ({ im: r(rng, 10, 40, 1) * 1000, il: r(rng, 50, 120, 5) * 1000, util: r(rng, 20, 60, 1) * 1000, ins: r(rng, 8, 32, 1) * 1000, dep: r(rng, 80, 200, 5) * 1000 }),
     compute: (v) => (v.im ?? 0) + (v.il ?? 0) + (v.util ?? 0) + (v.ins ?? 0) + (v.dep ?? 0),
@@ -89,7 +89,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.end-wip", chapter: ch, concept: "ac241.ch2.work-in-process-inventory", name: "Ending work in process balance (T-account)", unit: "$",
     formula: "Beginning WIP + Direct materials + Direct labor + Applied overhead − Cost of jobs completed",
-    when: "T-account questions: the WIP balance after posting the year's entries. Completed jobs leave at job-cost-sheet cost.",
+    when: "WIP balance after the year's entries. Completed jobs leave at job-cost-sheet cost.",
     watch: "APPLIED overhead goes into WIP, never actual overhead.",
     inputs: { beg: { label: "Beginning work in process", unit: "$" }, dm: { label: "Direct materials issued", unit: "$" }, dl: { label: "Direct labor", unit: "$" }, applied: { label: "Overhead applied", unit: "$", from: "ch3.applied-dlcost" }, done: { label: "Cost of jobs completed and transferred", unit: "$" } },
     gen: (rng, f) => { const beg = r(rng, 40, 120, 1) * 1000; const dm = r(rng, 100, 250, 5) * 1000; const dl = r(rng, 150, 300, 5) * 1000; const applied = f.applied ?? r(rng, 200, 400, 5) * 1000; const done = Math.round((beg + dm + dl + applied) * (0.8 + rng() * 0.12) / 1000) * 1000; return { beg, dm, dl, applied, done }; },
@@ -98,7 +98,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.end-rm", chapter: ch, concept: "ac241.ch2.raw-materials-inventory", name: "Ending raw materials balance (T-account)", unit: "$",
     formula: "Beginning raw materials + Purchases − Raw materials issued (direct AND indirect)",
-    when: "T-account and COGM-schedule questions. The credit to Raw Materials is the total issued, including indirect materials.",
+    when: "T-account questions. Credit to Raw Materials = total issued, indirect included.",
     inputs: { beg: { label: "Beginning raw materials", unit: "$" }, purch: { label: "Purchases of raw materials", unit: "$" }, issued: { label: "Raw materials issued to production (direct + indirect)", unit: "$" } },
     gen: (rng) => { const beg = r(rng, 10, 60, 1) * 1000; const purch = r(rng, 120, 260, 5) * 1000; return { beg, purch, issued: Math.min(beg + purch - r(rng, 5, 30, 1) * 1000, r(rng, 120, 260, 5) * 1000) }; },
     compute: (v) => (v.beg ?? 0) + (v.purch ?? 0) - (v.issued ?? 0),
@@ -106,8 +106,8 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.dm-from-issued", chapter: ch, concept: "ac241.ch2.direct-materials-used", name: "Direct materials used from materials issued", unit: "$",
     formula: "Raw materials used in production − Indirect materials",
-    when: "The COGM schedule in the exam review: materials used includes indirect materials, which must be pulled out and put into overhead.",
-    watch: "Forgetting to subtract indirect materials overstates direct materials and double-counts them (they're already in applied overhead).",
+    when: "COGM schedule: materials used includes indirect materials; pull them out into overhead.",
+    watch: "Skip the subtraction and indirect materials get counted twice (they're already in applied OH).",
     inputs: { issued: { label: "Raw materials used in production", unit: "$" }, im: { label: "Indirect materials", unit: "$" } },
     gen: (rng) => ({ issued: r(rng, 120, 260, 5) * 1000, im: r(rng, 10, 40, 1) * 1000 }),
     compute: (v) => (v.issued ?? 0) - (v.im ?? 0),
@@ -115,7 +115,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.dl-cost", chapter: ch, concept: id("labor-time-record"), name: "Direct labor cost charged to a job", unit: "$",
     formula: "Direct labor hours on the job × Wage rate per hour",
-    when: "From the labor time record. Feeds the job cost record; the hours also drive applied overhead when DL hours is the base.",
+    when: "From the time record. Feeds the job cost record; hours also drive applied OH when DLH is the base.",
     inputs: { hours: { label: "Direct labor hours on the job (from time records)", unit: "hrs" }, wage: { label: "Wage rate per hour", unit: "$/hr" } },
     gen: (rng) => ({ hours: r(rng, 5, 200, 1), wage: r(rng, 9, 45, 0.5) }),
     compute: (v) => (v.hours ?? 0) * (v.wage ?? 0),
@@ -123,7 +123,7 @@ const calcs: CalcNode[] = [
   {
     id: "ch3.cost-plus", chapter: ch, concept: id("cost-plus-pricing"), name: "Cost-plus price for a job", unit: "$",
     formula: "Total job cost × (1 + markup %)",
-    when: "Quoting a customer. The job cost (DM + DL + applied OH) has to be built first.",
+    when: "Quoting. Build job cost (DM + DL + applied OH) first.",
     inputs: { total: { label: "Total job cost", unit: "$", from: "ch3.job-cost" }, markup: { label: "Markup on cost", unit: "%" } },
     gen: (rng, f) => ({ total: f.total ?? r(rng, 500, 9000, 10), markup: r(rng, 10, 60, 5) }),
     compute: (v) => (v.total ?? 0) * (1 + (v.markup ?? 0) / 100),

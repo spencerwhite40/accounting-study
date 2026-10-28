@@ -43,7 +43,7 @@ export function Sort({ item, hints, onDone }: ItemProps) {
       {current !== undefined && !checked && (
         <>
           <div className="card flash" style={{ minHeight: "22dvh", fontSize: 19 }}>{set.cards[current]?.text}</div>
-          <p className="small muted center" style={{ margin: "0 0 6px" }}>Which bucket? ({remaining.length} left)</p>
+          <p className="small muted center" style={{ margin: "0 0 6px" }}>{remaining.length} left</p>
           <div className={set.buckets.length > 3 ? "grid2" : "stack"}>
             {set.buckets.map((b, bi) => <button key={bi} className="primary" style={{ minHeight: 56 }} onClick={() => place(bi)}>{b}</button>)}
           </div>
@@ -71,11 +71,11 @@ export function Sort({ item, hints, onDone }: ItemProps) {
         })}
       </div>
       {checked && (
-        <div className={`feedback ${wrong.length === 0 ? "ok" : wrong.length <= 2 ? "hard" : "bad"}`}>{wrong.length === 0 ? "All sorted correctly" : `${wrong.length} misplaced`}</div>
+        <div className={`feedback ${wrong.length === 0 ? "ok" : wrong.length <= 2 ? "hard" : "bad"}`}>{wrong.length === 0 ? "All right" : `${wrong.length} misplaced`}</div>
       )}
       {checked && (
         <div className="explain">
-          {wrong.length === 0 ? "Clean sweep." : "Each misplaced card shows where it belongs."}
+          {wrong.length === 0 ? "Clean sweep." : "Misplaced cards show where they belong."}
           {set.cards.filter((c) => c.why).map((c, i) => <p key={i} className="small"><b>{c.text}:</b> {c.why}</p>)}
         </div>
       )}

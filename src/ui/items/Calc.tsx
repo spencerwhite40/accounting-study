@@ -97,21 +97,21 @@ export function Calc({ item, hints, onDone }: ItemProps) {
 
       {checked && !breakdown && (
         <div className="card">
-          <h3>Worked solution</h3>
+          <h3>Solution</h3>
           {inst.chain.map((s, i) => (
             <div key={i} style={{ marginBottom: 10 }}>
-              <div><b>{i + 1}. {s.name}</b>{i < inst.chain.length - 1 ? <span className="muted small"> (needed first, not given)</span> : null}</div>
+              <div><b>{i + 1}. {s.name}</b>{i < inst.chain.length - 1 ? <span className="muted small"> · needed first</span> : null}</div>
               <div className="sol">{s.formula}{"\n"}{stepLines(s).join("\n")}</div>
             </div>
           ))}
-          {node && <p className="small"><b>When you need this:</b> {node.when}</p>}
-          {node?.watch && <p className="small"><b>Watch out:</b> {node.watch}</p>}
+          {node && <p className="small"><b>When:</b> {node.when}</p>}
+          {node?.watch && <p className="small"><b>Watch:</b> {node.watch}</p>}
         </div>
       )}
 
       {pendingDecision && (
         <div className="row">
-          <button className="primary grow" onClick={startBreakdown}>Break it down step by step</button>
+          <button className="primary grow" onClick={startBreakdown}>Break it down</button>
           <button className="ghost" onClick={skipBreakdown}>Skip</button>
         </div>
       )}

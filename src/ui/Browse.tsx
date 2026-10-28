@@ -21,7 +21,7 @@ export function Browse({ path }: { path: string }) {
   return (
     <div className="screen">
       {ch ? <a href="#" className="small" onClick={(e) => { e.preventDefault(); go("#/browse"); }}>← All chapters</a> : <div className="eyebrow">Browse</div>}
-      <h1>{ch ? `Ch ${ch.number}: ${ch.title}` : "Every term"}</h1>
+      <h1>{ch ? `Ch ${ch.number} · ${ch.title}` : "Terms"}</h1>
       {!ch && (
         <div className="stack" style={{ marginBottom: 14 }}>
           {catalog.chapters.map((c) => {
@@ -37,11 +37,11 @@ export function Browse({ path }: { path: string }) {
       )}
       <div className="search">
         <span className="muted">⌕</span>
-        <input id="browse-search" type="text" placeholder="Search terms and definitions" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input id="browse-search" type="text" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
         {q && <button className="ghost icon" style={{ minHeight: 36 }} onClick={() => setQ("")}>✕</button>}
       </div>
       <div className="row" style={{ marginBottom: 6 }}>
-        <span className="muted small grow">{concepts.length} terms, weakest first</span>
+        <span className="muted small grow">{concepts.length} · weakest first</span>
         <button className={`chip ${weakOnly ? "sel" : ""}`} style={{ margin: 0 }} onClick={() => setWeakOnly(!weakOnly)}>Weak only</button>
         {ch && <button className="chip" style={{ margin: 0 }} onClick={() => go(`#/study?mode=mixed&ch=${ch.number}`)}>Study</button>}
       </div>

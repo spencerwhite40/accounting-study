@@ -45,19 +45,19 @@ export function Chain({ item, hints, onDone }: ItemProps) {
   return (
     <>
       <div className="card">
-        <b>{item.sub === "steps" ? "Which equations, in what order?" : "What's missing?"}</b>
+        <b>{item.sub === "steps" ? "Which equations, in order?" : "What's missing?"}</b>
         {inst.scenario && <p className="small muted">{inst.scenario}</p>}
         <ul className="givens">
           {inst.givens.map((g, i) => <Given key={i} label={g.label} value={g.value} display={fmt(g.value, g.unit)} />)}
         </ul>
         <p><b>{inst.question}</b></p>
-        <p className="small muted">Don't compute anything. {item.sub === "steps" ? "Tap the equations you'd need, in the order you'd solve them." : "The equation for this figure needs the inputs below. Which one is not given and has to be worked out first?"}</p>
+        <p className="small muted">No computing. {item.sub === "steps" ? "Tap equations in solving order." : "Which input below isn't given?"}</p>
       </div>
 
       {item.sub === "steps" && (
         <>
           <div className="card" style={{ minHeight: 60 }}>
-            {seq.length === 0 && <span className="muted small">Your steps appear here.</span>}
+            {seq.length === 0 && <span className="muted small">Steps go here.</span>}
             {seq.map((n, i) => {
               const okPos = checked ? correct[i] === n : null;
               return (
@@ -91,7 +91,7 @@ export function Chain({ item, hints, onDone }: ItemProps) {
         </>
       )}
 
-      {checked && verdict && <div className={`feedback ${verdict}`}>{verdict === "ok" ? "Exactly right" : verdict === "hard" ? "Right equations, wrong order" : "Not quite"}</div>}
+      {checked && verdict && <div className={`feedback ${verdict}`}>{verdict === "ok" ? "Right" : verdict === "hard" ? "Right equations, wrong order" : "Not quite"}</div>}
       {checked && (
         <div className="card">
           <h3 style={{ marginTop: 0 }}>The chain</h3>
@@ -102,12 +102,12 @@ export function Chain({ item, hints, onDone }: ItemProps) {
               <div key={i} style={{ marginBottom: 10 }}>
                 <div><b>{i + 1}. {s.name}</b></div>
                 <div className="sol">{s.formula.split(/\.\s|\.$/)[0]}</div>
-                {why && <p className="small">Needed because <b>{why}</b> is not given; this equation produces it.</p>}
-                {!why && <p className="small">This is what the question asked for.</p>}
+                {why && <p className="small">Produces <b>{why}</b>, which isn't given.</p>}
+                {!why && <p className="small">The asked-for figure.</p>}
               </div>
             );
           })}
-          {target.watch && <p className="small"><b>Watch out:</b> {target.watch}</p>}
+          {target.watch && <p className="small"><b>Watch:</b> {target.watch}</p>}
         </div>
       )}
     </>

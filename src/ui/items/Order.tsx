@@ -35,7 +35,7 @@ export function Order({ item, hints, onDone }: ItemProps) {
     <>
       <div className="card">
         <b>{set.title}</b>
-        <p className="small muted">{set.prompt} Use the arrows.</p>
+        <p className="small muted">{set.prompt}</p>
       </div>
       {seq.map((v, pos) => (
         <div key={v} className={`step ${checked ? (v === pos ? "ok" : "bad") : ""}`}>

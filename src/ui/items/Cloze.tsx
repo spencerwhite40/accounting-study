@@ -47,7 +47,7 @@ export function Cloze({ item, hints, onDone }: ItemProps) {
         })}
       </div>
       {!checked && <button className="primary block" onClick={submit}>Check</button>}
-      {checked && <div className={`feedback ${results.every(Boolean) ? "ok" : results.some(Boolean) ? "hard" : "bad"}`}>{results.every(Boolean) ? "All blanks right" : results.some(Boolean) ? "Partly right" : "Not quite"}</div>}
+      {checked && <div className={`feedback ${results.every(Boolean) ? "ok" : results.some(Boolean) ? "hard" : "bad"}`}>{results.every(Boolean) ? "Right" : results.some(Boolean) ? "Partly" : "Not quite"}</div>}
       {checked && <div className="explain" style={{ whiteSpace: "pre-wrap" }}>{item.explain}</div>}
     </>
   );
