@@ -1,0 +1,30 @@
+{
+  "name": "accounting-study",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mobile-first accounting study app: flashcards, sorting, multiple choice, fill-the-blank and calculation-chain practice with spaced repetition.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "idb-keyval": "^6.2.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ts-fsrs": "^5.4.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.21.0",
+    "vitest": "^2.1.8"
+  }
+}
