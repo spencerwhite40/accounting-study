@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { ItemProps } from "../Session";
 import { Rating } from "../../engine/store";
 import { shuffle, mulberry32 } from "../../engine/items";
+import { haptic } from "../bits";
 
 /** One card at a time; buckets are big buttons under it. Placed cards collect under each bucket. */
 export function Sort({ item, hints, onDone }: ItemProps) {
@@ -16,6 +17,7 @@ export function Sort({ item, hints, onDone }: ItemProps) {
   const place = (bucket: number) => {
     if (current === undefined || checked) return;
     setPlaced({ ...placed, [current]: bucket });
+    haptic("tap");
   };
   const unplace = (i: number) => {
     if (checked) return;
@@ -27,6 +29,7 @@ export function Sort({ item, hints, onDone }: ItemProps) {
     setChecked(true);
     const right = set.cards.filter((c, i) => placed[i] === c.bucket).length;
     const frac = right / set.cards.length;
+    haptic(frac === 1 ? "ok" : "bad");
     onDone({ rating: frac === 1 ? (hints ? Rating.Hard : Rating.Good) : frac >= 0.75 ? Rating.Hard : Rating.Again });
   };
   const wrong = set.cards.filter((c, i) => placed[i] !== c.bucket);
@@ -68,8 +71,11 @@ export function Sort({ item, hints, onDone }: ItemProps) {
         })}
       </div>
       {checked && (
+        <div className={`feedback ${wrong.length === 0 ? "ok" : wrong.length <= 2 ? "hard" : "bad"}`}>{wrong.length === 0 ? "All sorted correctly" : `${wrong.length} misplaced`}</div>
+      )}
+      {checked && (
         <div className="explain">
-          {wrong.length === 0 ? "All sorted correctly." : `${wrong.length} misplaced; each shows where it belongs.`}
+          {wrong.length === 0 ? "Clean sweep." : "Each misplaced card shows where it belongs."}
           {set.cards.filter((c) => c.why).map((c, i) => <p key={i} className="small"><b>{c.text}:</b> {c.why}</p>)}
         </div>
       )}

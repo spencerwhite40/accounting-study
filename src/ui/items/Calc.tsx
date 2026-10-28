@@ -4,6 +4,7 @@ import { numberClose, fmt } from "../../engine/grade";
 import { stepLines } from "../../engine/calc";
 import { Rating } from "../../engine/store";
 import { catalog } from "../../App";
+import { haptic } from "../bits";
 
 /**
  * Numbers mode. Ask for the target figure only. After an answer, always show the
@@ -28,6 +29,7 @@ export function Calc({ item, hints, onDone }: ItemProps) {
     const num = numberClose(val, inst.answer);
     const dOk = inst.direction ? dir === inst.direction.answer : true;
     setChecked({ num, dir: dOk });
+    haptic(num && dOk ? "ok" : "bad");
     const right = num && dOk;
     if (right || inst.chain.length === 1 || num) {
       // right number but wrong direction counts as a partial miss, not a chain failure
@@ -41,6 +43,7 @@ export function Calc({ item, hints, onDone }: ItemProps) {
     const s = inst.chain[stepIdx];
     if (!s || stepShown !== null) return;
     const ok = numberClose(stepVal, s.result);
+    haptic(ok ? "ok" : "bad");
     setStepShown(ok);
     setStepResults((r) => [...r, { concept: s.concept, ok }]);
   };
@@ -81,8 +84,11 @@ export function Calc({ item, hints, onDone }: ItemProps) {
           </>
         )}
         {checked && (
+          <div className={`feedback ${checked.num && checked.dir ? "ok" : checked.num ? "hard" : "bad"}`}>{checked.num && checked.dir ? "Correct" : checked.num ? "Right amount, wrong direction" : "Not quite"}</div>
+        )}
+        {checked && (
           <div className="explain">
-            <p><b>{checked.num ? "Correct" : "Not quite"}:</b> {fmt(inst.answer, inst.unit)}{inst.direction ? ` · ${inst.direction.options[inst.direction.answer]}` : ""}{inst.direction && !checked.dir ? " (you picked the other direction)" : ""}</p>
+            <p><b>Answer:</b> {fmt(inst.answer, inst.unit)}{inst.direction ? ` · ${inst.direction.options[inst.direction.answer]}` : ""}{inst.direction && !checked.dir ? " (you picked the other direction)" : ""}</p>
             {!checked.num && val && <p className="small muted">You entered {val}.</p>}
           </div>
         )}

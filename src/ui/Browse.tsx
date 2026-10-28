@@ -1,54 +1,64 @@
+import { useState } from "react";
 import { catalog, useApp, go } from "../App";
 import { mastery, retrievability, accuracy } from "../engine/store";
 import { MODE_LABEL } from "../engine/items";
-import { masteryClass, Mastery } from "./bits";
+import { masteryClass, Mastery, Bar } from "./bits";
 
 export function Browse({ path }: { path: string }) {
   const { progress, openConcept } = useApp();
   const seg = path.split("/").filter(Boolean);
   const chNum = seg[1] ? Number(seg[1]) : undefined;
-  if (chNum === undefined) {
-    return (
-      <div className="screen">
-        <h1>Browse</h1>
-        <div className="list">
-          {catalog.chapters.map((ch) => (
-            <a key={ch.number} className="item" href="#" onClick={(e) => { e.preventDefault(); go(`#/browse/${ch.number}`); }}>
-              <span><b>Ch {ch.number}</b> {ch.title}</span>
-              <span className="muted small">{ch.concepts.length} terms</span>
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  const ch = catalog.chapter(chNum);
-  if (!ch) return <div className="screen">No such chapter.</div>;
-  const weakest = ch.concepts
+  const [q, setQ] = useState("");
+  const [weakOnly, setWeakOnly] = useState(false);
+
+  const ch = chNum !== undefined ? catalog.chapter(chNum) : undefined;
+  const concepts = (ch ? ch.concepts : catalog.conceptsIn())
     .map((c) => ({ c, m: retrievability(progress, c.id) === null ? null : mastery(progress, c.id) }))
+    .filter(({ c }) => !q || `${c.term} ${c.plain} ${c.definition}`.toLowerCase().includes(q.toLowerCase()))
+    .filter(({ m }) => !weakOnly || (m !== null && m < 0.65))
     .sort((a, b) => (a.m ?? -1) - (b.m ?? -1));
+
   return (
     <div className="screen">
-      <a href="#" className="small" onClick={(e) => { e.preventDefault(); go("#/browse"); }}>← Chapters</a>
-      <h1>Ch {ch.number}: {ch.title}</h1>
-      <div className="row">
-        <button className="primary grow" onClick={() => go(`#/study?mode=mixed&ch=${ch.number}`)}>Study chapter</button>
-        <button className="grow" onClick={() => go(`#/formulas/${ch.number}`)}>Formulas</button>
+      {ch ? <a href="#" className="small" onClick={(e) => { e.preventDefault(); go("#/browse"); }}>← All chapters</a> : <div className="eyebrow">Browse</div>}
+      <h1>{ch ? `Ch ${ch.number}: ${ch.title}` : "Every term"}</h1>
+      {!ch && (
+        <div className="stack" style={{ marginBottom: 14 }}>
+          {catalog.chapters.map((c) => {
+            const m = c.concepts.reduce((a, x) => a + mastery(progress, x.id), 0) / Math.max(1, c.concepts.length);
+            return (
+              <button key={c.number} className="card flat" style={{ margin: 0 }} onClick={() => go(`#/browse/${c.number}`)}>
+                <div className="row"><b className="grow">Ch {c.number} · {c.title}</b><span className="num">{Math.round(m * 100)}%</span></div>
+                <div style={{ marginTop: 8 }}><Bar value={m} /></div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="search">
+        <span className="muted">⌕</span>
+        <input id="browse-search" type="text" placeholder="Search terms and definitions" value={q} onChange={(e) => setQ(e.target.value)} />
+        {q && <button className="ghost icon" style={{ minHeight: 36 }} onClick={() => setQ("")}>✕</button>}
       </div>
-      <h3>Terms (weakest first)</h3>
+      <div className="row" style={{ marginBottom: 6 }}>
+        <span className="muted small grow">{concepts.length} terms, weakest first</span>
+        <button className={`chip ${weakOnly ? "sel" : ""}`} style={{ margin: 0 }} onClick={() => setWeakOnly(!weakOnly)}>Weak only</button>
+        {ch && <button className="chip" style={{ margin: 0 }} onClick={() => go(`#/study?mode=mixed&ch=${ch.number}`)}>Study</button>}
+      </div>
       <div className="list">
-        {weakest.map(({ c, m }) => (
+        {concepts.map(({ c, m }) => (
           <a key={c.id} className="item" href="#" onClick={(e) => { e.preventDefault(); openConcept(c.id); }}>
-            <span className="row"><i className={`dot ${masteryClass(m)}`} /> {c.term}</span>
-            <span className="row small muted">
-              {(["flashcard", "mcq", "cloze", "formula", "chain", "calc"] as const).map((mo) => {
+            <span className="row grow"><i className={`dot ${masteryClass(m)}`} /><span className="grow"><div style={{ fontWeight: 600 }}>{c.term}</div><div className="tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.plain}</div></span></span>
+            <span className="row small muted" style={{ flex: "none" }}>
+              {(["formula", "chain", "calc"] as const).map((mo) => {
                 const a = accuracy(progress, c.id, mo);
-                return a === null ? null : <span key={mo} title={MODE_LABEL[mo]} className={`pill ${a >= 0.7 ? "ok" : a >= 0.4 ? "warn" : "bad"}`}>{MODE_LABEL[mo][0]}</span>;
+                return a === null ? null : <span key={mo} title={MODE_LABEL[mo]} className={`pill ${a >= 0.7 ? "ok" : a >= 0.4 ? "warn" : "bad"}`}>{mo === "formula" ? "K" : mo === "chain" ? "S" : "N"}</span>;
               })}
               <Mastery value={m} />
             </span>
           </a>
         ))}
+        {concepts.length === 0 && <p className="muted">Nothing matches.</p>}
       </div>
     </div>
   );

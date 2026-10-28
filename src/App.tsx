@@ -8,6 +8,7 @@ import { Browse } from "./ui/Browse";
 import { Stats } from "./ui/Stats";
 import { Formulas } from "./ui/Formulas";
 import { ConceptSheet } from "./ui/ConceptSheet";
+import { Toaster, Icons } from "./ui/bits";
 
 export const catalog = new Catalog(chapters);
 
@@ -74,7 +75,7 @@ export function App() {
 
   const ctx = useMemo<Ctx>(() => ({ progress, update, replace, openConcept: setSheet }), [progress, update, replace]);
 
-  if (!ready) return <div className="screen center muted">Loading…</div>;
+  if (!ready) return <div className="screen center muted" style={{ minHeight: "100dvh" }}>Loading your progress…</div>;
 
   const [path, query] = route.replace(/^#/, "").split("?");
   const params = new URLSearchParams(query ?? "");
@@ -92,13 +93,13 @@ export function App() {
         {screen}
         {!inSession && (
           <nav className="tabbar">
-            <a href="#/" onClick={(e) => { e.preventDefault(); go("#/"); }} className={path === "/" ? "on" : ""}>Home</a>
-            <a href="#/browse" onClick={(e) => { e.preventDefault(); go("#/browse"); }} className={path?.startsWith("/browse") ? "on" : ""}>Browse</a>
-            <a href="#/formulas" onClick={(e) => { e.preventDefault(); go("#/formulas"); }} className={path?.startsWith("/formulas") ? "on" : ""}>Formulas</a>
-            <a href="#/stats" onClick={(e) => { e.preventDefault(); go("#/stats"); }} className={path?.startsWith("/stats") ? "on" : ""}>Stats</a>
+            {([["#/", "Home", Icons.home, path === "/"], ["#/browse", "Browse", Icons.browse, !!path?.startsWith("/browse")], ["#/formulas", "Equations", Icons.formulas, !!path?.startsWith("/formulas")], ["#/stats", "Progress", Icons.stats, !!path?.startsWith("/stats")]] as const).map(([href, label, icon, on]) => (
+              <a key={href} href={href} onClick={(e) => { e.preventDefault(); go(href); }} className={on ? "on" : ""}>{icon}{label}</a>
+            ))}
           </nav>
         )}
         {sheet && <ConceptSheet id={sheet} onClose={() => setSheet(null)} />}
+        <Toaster />
       </div>
     </AppCtx.Provider>
   );

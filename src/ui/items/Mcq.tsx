@@ -3,6 +3,7 @@ import type { ItemProps } from "../Session";
 import { TermText } from "../TermText";
 import { Rating } from "../../engine/store";
 import { catalog } from "../../App";
+import { haptic } from "../bits";
 
 export function Mcq({ item, hints, onDone }: ItemProps) {
   if (item.kind !== "mcq") return null;
@@ -12,6 +13,7 @@ export function Mcq({ item, hints, onDone }: ItemProps) {
     if (chosen !== null) return;
     setChosen(k);
     const right = k === item.answer;
+    haptic(right ? "ok" : "bad");
     onDone({ rating: right ? (hints ? Rating.Hard : Rating.Good) : Rating.Again, confusedWith: right ? undefined : item.choices[k]?.concept });
   };
   return (
@@ -23,8 +25,11 @@ export function Mcq({ item, hints, onDone }: ItemProps) {
         </button>
       ))}
       {chosen !== null && (
+        <div className={`feedback ${chosen === item.answer ? "ok" : "bad"}`}>{chosen === item.answer ? "Right" : "Not quite"}</div>
+      )}
+      {chosen !== null && (
         <div className="explain">
-          <b>{chosen === item.answer ? "Right." : "Not quite."}</b> {catalog.concept(item.concept).term}: {item.explain}
+          <b>{catalog.concept(item.concept).term}.</b> {item.explain}
           {chosen !== item.answer && (
             <p className="small">You picked <b>{catalog.concept(item.choices[chosen]?.concept ?? "").term}</b>: {catalog.concept(item.choices[chosen]?.concept ?? "").plain}</p>
           )}

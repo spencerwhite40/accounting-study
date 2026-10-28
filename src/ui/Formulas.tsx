@@ -10,7 +10,8 @@ export function Formulas({ path }: { path: string }) {
   const nodes = [...catalog.graph.nodes.values()].filter((n) => chNum === undefined || n.chapter === chNum);
   return (
     <div className="screen">
-      <h1>Formula map{chNum ? ` · Ch ${chNum}` : ""}</h1>
+      <div className="eyebrow">Equations</div>
+      <h1>{chNum ? `Chapter ${chNum} equations` : "Every equation"}</h1>
       <p className="muted small">Every equation, what it needs, and what it feeds. A "needs" that isn't given in a problem has to be computed first; that is the whole trick.</p>
       <div className="row" style={{ marginBottom: 8 }}>
         <button className="primary grow" onClick={() => go(`#/study?mode=formula${chNum ? `&ch=${chNum}` : ""}`)}>Drill all equations</button>

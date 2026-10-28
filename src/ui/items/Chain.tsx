@@ -3,6 +3,7 @@ import type { ItemProps } from "../Session";
 import { fmt } from "../../engine/grade";
 import { Rating } from "../../engine/store";
 import { catalog } from "../../App";
+import { haptic } from "../bits";
 
 /**
  * Spot the steps. "steps": pick the calculations needed, in order, without
@@ -16,6 +17,7 @@ export function Chain({ item, hints, onDone }: ItemProps) {
   const [seq, setSeq] = useState<string[]>([]);
   const [pick, setPick] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
+  const [verdict, setVerdict] = useState<"ok" | "hard" | "bad" | null>(null);
   const correct = inst.chain.map((s) => s.node);
 
   const submit = () => {
@@ -24,9 +26,13 @@ export function Chain({ item, hints, onDone }: ItemProps) {
     if (item.sub === "steps") {
       const exact = seq.length === correct.length && seq.every((n, i) => n === correct[i]);
       const sameSet = seq.length === correct.length && correct.every((n) => seq.includes(n));
+      setVerdict(exact ? "ok" : sameSet ? "hard" : "bad");
+      haptic(exact ? "ok" : "bad");
       onDone({ rating: exact ? (hints ? Rating.Hard : Rating.Good) : sameSet ? Rating.Hard : Rating.Again });
     } else {
       const ok = pick !== null && missingIdx.includes(pick);
+      setVerdict(ok ? "ok" : "bad");
+      haptic(ok ? "ok" : "bad");
       onDone({ rating: ok ? (hints ? Rating.Hard : Rating.Good) : Rating.Again });
     }
   };
@@ -65,7 +71,7 @@ export function Chain({ item, hints, onDone }: ItemProps) {
           {!checked && (
             <div className="row wrap">
               {item.options.filter((o) => !seq.includes(o.node)).map((o) => (
-                <button key={o.node} className="chip" onClick={() => setSeq([...seq, o.node])}>{o.name}</button>
+                <button key={o.node} className="chip" onClick={() => { setSeq([...seq, o.node]); haptic("tap"); }}>{o.name}</button>
               ))}
             </div>
           )}
@@ -84,9 +90,10 @@ export function Chain({ item, hints, onDone }: ItemProps) {
         </>
       )}
 
+      {checked && verdict && <div className={`feedback ${verdict}`}>{verdict === "ok" ? "Exactly right" : verdict === "hard" ? "Right equations, wrong order" : "Not quite"}</div>}
       {checked && (
         <div className="card">
-          <h3>The chain</h3>
+          <h3 style={{ marginTop: 0 }}>The chain</h3>
           {inst.chain.map((s, i) => {
             const feeds = i < inst.chain.length - 1 ? inst.chain.slice(i + 1).find((t) => t.inputs.some((x) => x.derived && x.value === s.result)) : undefined;
             const why = feeds ? feeds.inputs.find((x) => x.derived && x.value === s.result)?.label : undefined;

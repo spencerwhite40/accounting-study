@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { ItemProps } from "../Session";
 import { Rating } from "../../engine/store";
 import { shuffle, mulberry32 } from "../../engine/items";
+import { haptic } from "../bits";
 
 export function Order({ item, hints, onDone }: ItemProps) {
   if (item.kind !== "order") return null;
@@ -27,6 +28,7 @@ export function Order({ item, hints, onDone }: ItemProps) {
     setChecked(true);
     const right = seq.filter((v, i) => v === i).length;
     const frac = right / seq.length;
+    haptic(frac === 1 ? "ok" : "bad");
     onDone({ rating: frac === 1 ? (hints ? Rating.Hard : Rating.Good) : frac >= 0.6 ? Rating.Hard : Rating.Again });
   };
   return (
@@ -48,6 +50,7 @@ export function Order({ item, hints, onDone }: ItemProps) {
         </div>
       ))}
       {!checked && <button className="primary block" style={{ marginTop: 10 }} onClick={submit}>Check</button>}
+      {checked && <div className={`feedback ${seq.every((v, k) => v === k) ? "ok" : "bad"}`}>{seq.every((v, k) => v === k) ? "Right order" : `${seq.filter((v, k) => v !== k).length} out of place`}</div>}
       {checked && set.explain && <div className="explain">{set.explain}</div>}
     </>
   );

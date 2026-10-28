@@ -1,6 +1,6 @@
 import { catalog, useApp, go } from "../App";
-import { mastery, retrievability } from "../engine/store";
-import { Mastery } from "./bits";
+import { mastery, retrievability, humanInterval } from "../engine/store";
+import { Mastery, masteryWord } from "./bits";
 
 export function ConceptSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const { progress, openConcept } = useApp();
@@ -17,7 +17,7 @@ export function ConceptSheet({ id, onClose }: { id: string; onClose: () => void 
           <h2 className="grow" style={{ margin: 0 }}>{c.term}</h2>
           <Mastery value={r === null ? null : m} />
         </div>
-        <p className="muted small">Chapter {c.chapter} · {c.topic}</p>
+        <p className="muted small">Chapter {c.chapter} · {c.topic}{r !== null ? ` · ${masteryWord(m)}` : ""}{(() => { const d = progress.cards[id]?.due; return d && d.getTime() > Date.now() ? ` · next review in ${humanInterval(d.getTime() - Date.now())}` : d ? " · due now" : ""; })()}</p>
         <p>{c.definition}</p>
         <p><b>Plainly:</b> {c.plain}</p>
         {c.formula && <p className="sol">{c.formula}</p>}
