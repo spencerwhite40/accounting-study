@@ -11,7 +11,11 @@ export function Formulas({ path }: { path: string }) {
   return (
     <div className="screen">
       <h1>Formula map{chNum ? ` · Ch ${chNum}` : ""}</h1>
-      <p className="muted small">Each calculation, what it needs, and what it feeds. A "needs" that isn't given in a problem has to be computed first; that is the whole trick.</p>
+      <p className="muted small">Every equation, what it needs, and what it feeds. A "needs" that isn't given in a problem has to be computed first; that is the whole trick.</p>
+      <div className="row" style={{ marginBottom: 8 }}>
+        <button className="primary grow" onClick={() => go(`#/study?mode=formula${chNum ? `&ch=${chNum}` : ""}`)}>Drill all equations</button>
+        <button className="grow" onClick={() => go(`#/study?mode=chain${chNum ? `&ch=${chNum}` : ""}`)}>Spot the steps</button>
+      </div>
       <div className="row wrap" style={{ marginBottom: 8 }}>
         <a className="chip" href="#" onClick={(e) => { e.preventDefault(); go("#/formulas"); }}>All</a>
         {catalog.chapters.filter((c) => c.calcs.length).map((c) => <a key={c.number} className="chip" href="#" onClick={(e) => { e.preventDefault(); go(`#/formulas/${c.number}`); }}>Ch {c.number}</a>)}
@@ -31,7 +35,8 @@ export function Formulas({ path }: { path: string }) {
             {needs.length > 0 && <p className="small"><b>May need first:</b> {needs.map((d) => d.name).join(" · ")}</p>}
             {feeds.length > 0 && <p className="small"><b>Feeds:</b> {feeds.map((d) => d.name).join(" · ")}</p>}
             <div className="row" style={{ marginTop: 8 }}>
-              <button className="grow" onClick={() => go(`#/study?mode=calc&concept=${encodeURIComponent(n.concept)}&node=${encodeURIComponent(n.id)}`)}>Practice</button>
+              <button className="grow" onClick={() => go(`#/study?mode=formula&concept=${encodeURIComponent(n.concept)}`)}>Drill</button>
+              <button className="grow" onClick={() => go(`#/study?mode=calc&concept=${encodeURIComponent(n.concept)}&node=${encodeURIComponent(n.id)}`)}>Numbers</button>
               <button className="ghost" onClick={() => openConcept(n.concept)}>Term</button>
             </div>
           </div>

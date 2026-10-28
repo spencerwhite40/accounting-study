@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { catalog, useApp, go } from "../App";
 import { buildSession } from "../engine/session";
-import { makeItem, type Item, type Mode, MODE_LABEL, itemConcepts, makeCalc } from "../engine/items";
+import { makeItem, type Item, type Mode, MODE_LABEL, itemConcepts, makeCalc, itemMode } from "../engine/items";
 import { review, confuse, Rating, type Grade } from "../engine/store";
 import { Flashcard } from "./items/Flashcard";
 import { Mcq } from "./items/Mcq";
@@ -9,6 +9,7 @@ import { Cloze } from "./items/Cloze";
 import { Sort } from "./items/Sort";
 import { Order } from "./items/Order";
 import { Calc } from "./items/Calc";
+import { Chain } from "./items/Chain";
 import { generate } from "../engine/calc";
 import { mulberry32 } from "../engine/items";
 
@@ -78,7 +79,7 @@ export function Session({ params }: { params: URLSearchParams }) {
     setDone(r);
     setTally((t) => (r.rating === Rating.Again ? { ...t, wrong: t.wrong + 1 } : { ...t, right: t.right + 1 }));
     update((p) => {
-      for (const c of itemConcepts(item)) review(p, c, item.kind, r.rating, hints);
+      for (const c of itemConcepts(item)) review(p, c, itemMode(item), r.rating, hints);
       if (r.confusedWith && item.kind !== "sort" && item.kind !== "order") confuse(p, item.concept, r.confusedWith);
       const own = new Set(itemConcepts(item));
       for (const s of r.stepReviews ?? []) if (!own.has(s.concept)) review(p, s.concept, "calc", s.ok ? Rating.Good : Rating.Again, 0);
@@ -92,7 +93,7 @@ export function Session({ params }: { params: URLSearchParams }) {
   const another = () => {
     // same concept, different wording or numbers; does not count as a review
     const cid = itemConcepts(item)[0] as string;
-    const replacement = item.kind === "calc" ? makeCalc(catalog, cid, Math.floor(Math.random() * 100), item.inst.hidden.length > 0) : makeItem(catalog, cid, item.kind, Math.floor(Math.random() * 100));
+    const replacement = item.kind === "calc" ? makeCalc(catalog, cid, Math.floor(Math.random() * 100), item.inst.hidden.length > 0) : makeItem(catalog, cid, itemMode(item), Math.floor(Math.random() * 100));
     if (replacement) {
       const copy = items.slice();
       copy[i] = replacement;
@@ -112,7 +113,7 @@ export function Session({ params }: { params: URLSearchParams }) {
         <span className="muted small">{i + 1}/{items.length}</span>
       </div>
       <div className="row" style={{ marginBottom: 6 }}>
-        <span className="pill">{MODE_LABEL[item.kind]}</span>
+        <span className="pill">{MODE_LABEL[itemMode(item)]}</span>
         <span className="muted small">Ch {catalog.concept(itemConcepts(item)[0] as string).chapter}</span>
         <span className="grow" />
         {!done && <button className="ghost small" style={{ minHeight: 36 }} onClick={another}>Another</button>}
@@ -127,6 +128,7 @@ export function Session({ params }: { params: URLSearchParams }) {
         {item.kind === "sort" && <Sort {...props} />}
         {item.kind === "order" && <Order {...props} />}
         {item.kind === "calc" && <Calc {...props} />}
+        {item.kind === "chain" && <Chain {...props} />}
       </div>
 
       {done && (
@@ -144,8 +146,26 @@ function hintsFor(item: Item): string[] {
   switch (item.kind) {
     case "flashcard":
     case "mcq":
+      if (item.kind === "mcq" && item.mode === "formula") {
+        const n = catalog.graph.forConcept(c.id)[0];
+        return [`Chapter ${c.chapter}, ${c.topic}.`, n ? `When you need it: ${n.when}` : c.plain, n ? `It starts "${n.formula.split(" ").slice(0, 2).join(" ")}…"` : c.plain];
+      }
       return [`Chapter ${c.chapter}, ${c.topic}.`, c.plain, `Starts with "${c.term.slice(0, 2)}…"`];
+    case "chain": {
+      const n = catalog.graph.node(item.inst.target);
+      const first = item.inst.chain[0];
+      return [
+        `Start from the equation for what's asked: ${n.formula.split(/\.\s|\.$/)[0]}.`,
+        `Check each input of that equation against the givens. ${item.inst.hidden.length ? `${item.inst.hidden.join(" and ")} ${item.inst.hidden.length > 1 ? "are" : "is"} not in the list.` : ""}`,
+        first ? `The first thing to compute is ${first.name.toLowerCase()}.` : "",
+      ].filter(Boolean);
+    }
     case "cloze": {
+      if (item.mode === "formula") {
+        const n = catalog.graph.forConcept(c.id)[0];
+        const answers = item.parts.filter((p): p is { answers: string[] } => typeof p !== "string").map((p) => p.answers[0] ?? "");
+        return [n ? `When you need it: ${n.when}` : c.plain, n?.watch ?? c.plain, `First letters: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
+      }
       const answers = item.parts.filter((p): p is { answers: string[] } => typeof p !== "string").map((p) => p.answers[0] ?? "");
       return [`Chapter ${c.chapter}, ${c.topic}.`, c.plain, `First letters: ${answers.map((a) => a.slice(0, 1).toUpperCase() + "…").join(", ")}`];
     }

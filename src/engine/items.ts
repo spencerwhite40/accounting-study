@@ -1,14 +1,16 @@
 import type { Chapter, Concept, SortSet, OrderSet, CalcInstance } from "../content/types";
 import { CalcGraph, generate } from "./calc";
 
-export type Mode = "flashcard" | "mcq" | "cloze" | "sort" | "order" | "calc";
-export const MODES: Mode[] = ["flashcard", "mcq", "cloze", "sort", "order", "calc"];
+export type Mode = "flashcard" | "mcq" | "cloze" | "sort" | "order" | "formula" | "chain" | "calc";
+export const MODES: Mode[] = ["flashcard", "mcq", "cloze", "sort", "order", "formula", "chain", "calc"];
 export const MODE_LABEL: Record<Mode, string> = {
   flashcard: "Flashcards",
   mcq: "Multiple choice",
   cloze: "Fill the blank",
   sort: "Sort & organize",
   order: "Put in order",
+  formula: "Know the equation",
+  chain: "Spot the steps",
   calc: "Numbers",
 };
 
@@ -16,11 +18,18 @@ export type ClozePart = string | { answers: string[] };
 
 export type Item =
   | { kind: "flashcard"; id: string; concept: string; front: string; back: string; variant: string }
-  | { kind: "mcq"; id: string; concept: string; stem: string; choices: { text: string; concept: string }[]; answer: number; explain: string }
-  | { kind: "cloze"; id: string; concept: string; parts: ClozePart[]; explain: string }
+  | { kind: "mcq"; id: string; concept: string; stem: string; choices: { text: string; concept: string }[]; answer: number; explain: string; mode?: Mode }
+  | { kind: "cloze"; id: string; concept: string; parts: ClozePart[]; explain: string; mode?: Mode }
+  | { kind: "chain"; id: string; concept: string; sub: "steps" | "missing"; inst: CalcInstance; options: { node: string; name: string }[] }
   | { kind: "sort"; id: string; concepts: string[]; set: SortSet }
   | { kind: "order"; id: string; concepts: string[]; set: OrderSet }
   | { kind: "calc"; id: string; concept: string; title: string; inst: CalcInstance };
+
+/** The mode an item is tracked under (formula drills reuse mcq/cloze renderers). */
+export function itemMode(item: Item): Mode {
+  if ((item.kind === "mcq" || item.kind === "cloze") && item.mode) return item.mode;
+  return item.kind;
+}
 
 /** Concept ids an item exercises (for scheduling and mastery). */
 export function itemConcepts(item: Item): string[] {
@@ -80,7 +89,9 @@ export class Catalog {
     if (ch?.clozes.some((z) => z.concept === conceptId)) modes.push("cloze");
     if (ch?.sorts.some((s) => s.concepts.includes(conceptId))) modes.push("sort");
     if (ch?.orders.some((s) => s.concepts.includes(conceptId))) modes.push("order");
-    if (ch?.calcs.some((s) => s.concept === conceptId)) modes.push("calc");
+    const nodes = this.graph.forConcept(conceptId);
+    if (nodes.length) modes.push("formula", "calc");
+    if (nodes.some((n) => Object.values(n.inputs).some((i) => i.from))) modes.push("chain");
     return modes;
   }
 }
@@ -154,6 +165,61 @@ export function makeCalc(cat: Catalog, conceptId: string, variant: number, chain
   return { kind: "calc", id: `calc:${node.id}:${variant}`, concept: conceptId, title: node.name, inst };
 }
 
+// ---------- equation drills ----------
+/** Split a formula into operand strings (first sentence only). */
+export function formulaOperands(formula: string): string[] {
+  const first = formula.split(/\.\s|\.$/)[0] ?? formula;
+  return first
+    .split(/\s[+−×÷=]\s/)
+    .map((t) => t.replace(/^[(\s]+|[)\s]+$/g, "").trim())
+    .filter((t) => t.length > 2);
+}
+
+export function makeFormula(cat: Catalog, conceptId: string, variant: number, rng: () => number): Item | undefined {
+  const nodes = cat.graph.forConcept(conceptId);
+  if (nodes.length === 0) return undefined;
+  const node = nodes[Math.floor(variant / 3) % nodes.length] as (typeof nodes)[number];
+  const others = shuffle([...cat.graph.nodes.values()].filter((n) => n.id !== node.id), rng);
+  const sameCh = others.filter((n) => n.chapter === node.chapter);
+  const pool = [...sameCh, ...others.filter((n) => n.chapter !== node.chapter)];
+  const sub = variant % 3;
+  if (sub === 2) {
+    const ops = formulaOperands(node.formula);
+    if (ops.length >= 2) {
+      const blank = Math.floor(rng() * ops.length);
+      const first = node.formula.split(/\.\s|\.$/)[0] ?? node.formula;
+      const target = ops[blank] as string;
+      const idx = first.indexOf(target);
+      const short = target.replace(/\s*\(.*$/, "").trim();
+      const parts: ClozePart[] = idx >= 0
+        ? [`${node.name} = ${first.slice(0, idx)}`, { answers: [target, short] }, first.slice(idx + target.length)]
+        : [`${node.name} = `, { answers: [target, short] }];
+      return { kind: "cloze", mode: "formula", id: `fz:${node.id}:${variant}`, concept: conceptId, parts, explain: `${node.formula}\n\nWhen you need it: ${node.when}` };
+    }
+  }
+  const distractors = pool.slice(0, 3);
+  if (sub === 1) {
+    const choices = shuffle([node, ...distractors].map((n) => ({ text: n.name, concept: n.concept, node: n.id })), rng);
+    return { kind: "mcq", mode: "formula", id: `fm:${node.id}:${variant}`, concept: conceptId, stem: `Which figure does this equation give you?\n${node.formula.split(/\.\s|\.$/)[0]}`, choices, answer: choices.findIndex((c) => c.node === node.id), explain: `${node.name}. ${node.when}` };
+  }
+  const choices = shuffle([node, ...distractors].map((n) => ({ text: n.formula.split(/\.\s|\.$/)[0] ?? n.formula, concept: n.concept, node: n.id })), rng);
+  return { kind: "mcq", mode: "formula", id: `fm:${node.id}:${variant}`, concept: conceptId, stem: `What is the equation for ${node.name.toLowerCase()}?`, choices, answer: choices.findIndex((c) => c.node === node.id), explain: `${node.when}${node.watch ? ` Watch out: ${node.watch}` : ""}` };
+}
+
+export function makeChain(cat: Catalog, conceptId: string, variant: number, rng: () => number): Item | undefined {
+  const nodes = cat.graph.forConcept(conceptId).filter((n) => Object.values(n.inputs).some((i) => i.from));
+  if (nodes.length === 0) return undefined;
+  const node = nodes[Math.floor(variant / 2) % nodes.length] as (typeof nodes)[number];
+  const sub = variant % 2 === 0 ? "steps" : "missing";
+  let inst = generate(cat.graph, node.id, rng, { chainProb: 1, maxDepth: sub === "missing" ? 1 : 3 });
+  for (let tries = 0; tries < 6 && inst.chain.length < 2; tries++) inst = generate(cat.graph, node.id, rng, { chainProb: 1, maxDepth: 3 });
+  if (inst.chain.length < 2) return undefined;
+  const used = new Set(inst.chain.map((s) => s.node));
+  const decoys = shuffle([...cat.graph.nodes.values()].filter((n) => !used.has(n.id) && n.chapter === node.chapter), rng).slice(0, Math.max(2, 5 - inst.chain.length));
+  const options = shuffle([...inst.chain.map((s) => ({ node: s.node, name: s.name })), ...decoys.map((n) => ({ node: n.id, name: n.name }))], rng);
+  return { kind: "chain", id: `chain:${node.id}:${variant}:${sub}`, concept: conceptId, sub, inst, options };
+}
+
 export function hash(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -176,6 +242,10 @@ export function makeItem(cat: Catalog, conceptId: string, mode: Mode, variant: n
       return makeCloze(cat, conceptId, variant);
     case "calc":
       return makeCalc(cat, conceptId, variant);
+    case "formula":
+      return makeFormula(cat, conceptId, variant, rng);
+    case "chain":
+      return makeChain(cat, conceptId, variant, rng);
     case "sort": {
       const sets = (cat.chapter(c.chapter)?.sorts ?? []).filter((s) => s.concepts.includes(conceptId));
       return sets.length ? makeSort(sets[variant % sets.length] as SortSet) : undefined;

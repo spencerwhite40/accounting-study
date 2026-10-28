@@ -124,3 +124,30 @@ describe("session builder", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe("equation drills", () => {
+  it("every calculation concept yields name→formula, formula→name and fill-the-term items", () => {
+    for (const n of cat.graph.nodes.values()) {
+      const a = makeItem(cat, n.concept, "formula", 0);
+      const b = makeItem(cat, n.concept, "formula", 1);
+      const c = makeItem(cat, n.concept, "formula", 2);
+      expect(a?.kind).toBe("mcq");
+      expect(b?.kind).toBe("mcq");
+      if (a?.kind === "mcq") expect(a.choices[a.answer]?.concept).toBe(n.concept);
+      if (c?.kind === "cloze") expect(c.parts.some((p) => typeof p !== "string")).toBe(true);
+    }
+  });
+  it("spot-the-steps items list every chain node among the options and never ask for a one-step chain", () => {
+    for (const n of cat.graph.nodes.values()) {
+      if (!Object.values(n.inputs).some((i) => i.from)) continue;
+      for (const v of [0, 1, 2, 3]) {
+        const it = makeItem(cat, n.concept, "chain", v);
+        expect(it?.kind, `${n.id} v${v}`).toBe("chain");
+        if (it?.kind !== "chain") continue;
+        expect(it.inst.chain.length).toBeGreaterThanOrEqual(2);
+        for (const s of it.inst.chain) expect(it.options.some((o) => o.node === s.node)).toBe(true);
+        if (it.sub === "missing") expect(it.inst.hidden.length).toBeGreaterThan(0);
+      }
+    }
+  });
+});

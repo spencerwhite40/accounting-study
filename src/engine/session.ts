@@ -1,4 +1,4 @@
-import { Catalog, MODES, type Item, type Mode, makeItem, mulberry32, shuffle, hash } from "./items";
+import { Catalog, MODES, type Item, type Mode, makeItem, mulberry32, shuffle, hash, itemMode } from "./items";
 import { type Progress, isDue, mastery, accuracy } from "./store";
 import type { SortSet, OrderSet } from "../content/types";
 
@@ -16,8 +16,15 @@ function variantFor(p: Progress, concept: string, mode: Mode): number {
   return (st ? st.right + st.wrong : 0) + Math.floor(Math.random() * 2);
 }
 
+export { itemMode };
+
 function chooseMode(cat: Catalog, p: Progress, concept: string, rng: () => number): Mode {
   const modes = cat.modesFor(concept).filter((m) => m !== "sort" && m !== "order");
+  // equations ladder: know it, spot it, then compute it
+  const fa = accuracy(p, concept, "formula");
+  if (modes.includes("formula") && (fa === null || fa < 0.7)) return "formula";
+  const ca = accuracy(p, concept, "chain");
+  if (modes.includes("chain") && (ca === null || ca < 0.7)) return "chain";
   const r = p.cards[concept]?.reps ?? 0;
   if (r === 0) return "flashcard";
   // never-tried modes first, then weakest accuracy, with a little randomness

@@ -41,7 +41,7 @@ export function Browse({ path }: { path: string }) {
           <a key={c.id} className="item" href="#" onClick={(e) => { e.preventDefault(); openConcept(c.id); }}>
             <span className="row"><i className={`dot ${masteryClass(m)}`} /> {c.term}</span>
             <span className="row small muted">
-              {(["flashcard", "mcq", "cloze", "calc"] as const).map((mo) => {
+              {(["flashcard", "mcq", "cloze", "formula", "chain", "calc"] as const).map((mo) => {
                 const a = accuracy(progress, c.id, mo);
                 return a === null ? null : <span key={mo} title={MODE_LABEL[mo]} className={`pill ${a >= 0.7 ? "ok" : a >= 0.4 ? "warn" : "bad"}`}>{MODE_LABEL[mo][0]}</span>;
               })}
