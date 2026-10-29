@@ -214,3 +214,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
 .givens li.given { cursor: pointer; border-radius: 8px; transition: background .12s; }
 .givens li.given:active { background: var(--gold-soft); }
 .given-plus { display: inline-block; margin-left: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold-soft); color: var(--accent); font-size: 13px; font-weight: 800; text-align: center; line-height: 18px; vertical-align: 2px; font-family: var(--body); }
+.cloze-input { display: inline-block; width: min(220px, 70%); min-height: 40px; padding: 4px 10px; margin: 0 4px; }
+.level { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--gold-soft); color: #7a5a00; margin-bottom: 6px; }
+:root[data-theme="dark"] .level { color: var(--gold); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .level { color: var(--gold); } }

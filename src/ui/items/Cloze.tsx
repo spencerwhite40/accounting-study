@@ -2,52 +2,61 @@ import { useState } from "react";
 import type { ItemProps } from "../Session";
 import { matches } from "../../engine/grade";
 import { Rating } from "../../engine/store";
+import { itemMode } from "../../engine/items";
+import { useApp } from "../../App";
 import { haptic } from "../bits";
 
+/** One blank. Tap the right choice; typing unlocks after the learner has been getting these right. */
 export function Cloze({ item, hints, onDone }: ItemProps) {
   if (item.kind !== "cloze") return null;
-  const blanks = item.parts.map((p, i) => (typeof p === "string" ? null : i)).filter((x): x is number => x !== null);
-  const [vals, setVals] = useState<Record<number, string>>({});
+  const { progress } = useApp();
+  const st = progress.stats[item.concept]?.[itemMode(item)];
+  const earned = !!st && st.right + st.wrong >= 3 && st.right / (st.right + st.wrong) >= 0.8;
+  const [typed, setTyped] = useState(earned);
+  const [text, setText] = useState("");
+  const [picked, setPicked] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
-  const results = blanks.map((i) => {
-    const p = item.parts[i];
-    return !p || typeof p === "string" ? false : matches(vals[i] ?? "", p.answers);
-  });
-  const submit = () => {
-    if (checked) return;
+  const blank = item.parts.find((p): p is { answers: string[] } => typeof p !== "string");
+  const answers = blank?.answers ?? [];
+  const given = typed ? text : picked ?? "";
+  const right = typed ? matches(text, answers) : picked !== null && answers.some((a) => a === picked);
+
+  const finish = (ok: boolean) => {
     setChecked(true);
-    const allRight = results.every(Boolean);
-    haptic(allRight ? "ok" : "bad");
-    const someRight = results.some(Boolean);
-    onDone({ rating: allRight ? (hints ? Rating.Hard : Rating.Good) : someRight && results.length > 1 ? Rating.Hard : Rating.Again });
+    haptic(ok ? "ok" : "bad");
+    onDone({ rating: ok ? (hints ? Rating.Hard : Rating.Good) : Rating.Again });
   };
-  let b = 0;
+  const tap = (c: string) => {
+    if (checked) return;
+    setPicked(c);
+    finish(answers.some((a) => a === c));
+  };
+
   return (
     <>
       <div className="card" style={{ fontSize: 18, lineHeight: 1.9 }}>
         {item.parts.map((p, i) => {
           if (typeof p === "string") return <span key={i}>{p}</span>;
-          const k = b++;
-          const ok = results[k];
-          return checked ? (
-            <span key={i} className={`blank ${ok ? "ok" : "bad"}`}>{ok ? vals[i] : <><s>{vals[i] || "…"}</s> {p.answers[0]}</>}</span>
-          ) : (
-            <input
-              key={i}
-              type="text"
-              autoCapitalize="none"
-              autoCorrect="off"
-              style={{ display: "inline-block", width: Math.max(110, (p.answers[0]?.length ?? 8) * 11), minHeight: 36, padding: "4px 8px", margin: "0 4px" }}
-              value={vals[i] ?? ""}
-              placeholder={`blank ${k + 1}`}
-              onChange={(e) => setVals({ ...vals, [i]: e.target.value })}
-              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-            />
+          if (checked) return <span key={i} className={`blank ${right ? "ok" : "bad"}`}>{right ? given : <><s>{given || "…"}</s> {answers[0]}</>}</span>;
+          if (!typed) return <span key={i} className="blank">{picked ?? "      "}</span>;
+          return (
+            <input key={i} className="cloze-input" type="text" autoCapitalize="none" autoCorrect="off" value={text} placeholder="type it" onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) finish(matches(text, answers)); }} />
           );
         })}
       </div>
-      {!checked && <button className="primary block" onClick={submit}>Check</button>}
-      {checked && <div className={`feedback ${results.every(Boolean) ? "ok" : results.some(Boolean) ? "hard" : "bad"}`}>{results.every(Boolean) ? "Right" : results.some(Boolean) ? "Partly" : "Not quite"}</div>}
+      {!checked && !typed && (
+        <>
+          {item.choices.map((c) => <button key={c} className="choice" onClick={() => tap(c)}>{c}</button>)}
+          <button className="ghost small block" style={{ textAlign: "center" }} onClick={() => setTyped(true)}>Type it instead</button>
+        </>
+      )}
+      {!checked && typed && (
+        <>
+          <button className="primary block" disabled={!text.trim()} onClick={() => finish(matches(text, answers))}>Check</button>
+          <button className="ghost small block" style={{ textAlign: "center" }} onClick={() => setTyped(false)}>Show choices</button>
+        </>
+      )}
+      {checked && <div className={`feedback ${right ? "ok" : "bad"}`}>{right ? "Right" : "Not quite"}</div>}
       {checked && <div className="explain" style={{ whiteSpace: "pre-wrap" }}>{item.explain}</div>}
     </>
   );

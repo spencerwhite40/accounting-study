@@ -164,11 +164,11 @@ export function CalculatorSheet() {
   );
 }
 
-/** Floating button shown on numeric items. */
-export function CalculatorFab() {
+/** Small button in the top row of numeric questions. */
+export function CalculatorButton() {
   return (
-    <button className="calc-fab" onClick={openCalculator} aria-label="Open calculator">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15v2M8 18h2M12 18h2" /></svg>
+    <button className="soft icon" style={{ minHeight: 36, minWidth: 44, background: "var(--gold)", color: "#2a1d00" }} onClick={openCalculator} aria-label="Open calculator">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15v2M8 18h2M12 18h2" /></svg>
     </button>
   );
 }

@@ -62,7 +62,7 @@ export function App() {
   }, []);
 
   const update = useCallback((fn: (p: Progress) => void) => {
-    const next = { ...ref.current, cards: { ...ref.current.cards }, stats: Object.fromEntries(Object.entries(ref.current.stats).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).map(([m, st]) => [m, st ? { ...st } : st]))])), confusions: { ...ref.current.confusions }, log: ref.current.log.slice() };
+    const next = { ...ref.current, cards: { ...ref.current.cards }, stats: Object.fromEntries(Object.entries(ref.current.stats).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).map(([m, st]) => [m, st ? { ...st } : st]))])), confusions: { ...ref.current.confusions }, calcLevel: { ...ref.current.calcLevel }, calcStreak: { ...ref.current.calcStreak }, log: ref.current.log.slice() };
     fn(next);
     ref.current = next;
     setProgress(next);

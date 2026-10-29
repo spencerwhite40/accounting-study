@@ -1,8 +1,8 @@
 import { Catalog, MODES, type Item, type Mode, makeItem, mulberry32, shuffle, hash, itemMode } from "./items";
-import { type Progress, isDue, mastery, accuracy } from "./store";
+import { type Progress, isDue, mastery, accuracy, attempts, calcLevelOf } from "./store";
 import type { SortSet, OrderSet } from "../content/types";
 import { EXAM_WEIGHT } from "../content/exam1";
-import { SCENARIOS } from "./exam";
+import { allExamItems } from "./exam";
 
 export interface SessionSpec {
   mode: Mode | "mixed";
@@ -20,22 +20,30 @@ function variantFor(p: Progress, concept: string, mode: Mode): number {
 
 export { itemMode };
 
+/** Climb a ladder per concept: read it, recognize it, then use it. Stay on a rung until it is passed. */
 function chooseMode(cat: Catalog, p: Progress, concept: string, rng: () => number): Mode {
-  const modes = cat.modesFor(concept).filter((m) => m !== "sort" && m !== "order");
-  // equations ladder: know it, spot it, then compute it
-  const fa = accuracy(p, concept, "formula");
-  if (modes.includes("formula") && (fa === null || fa < 0.7)) return "formula";
-  const ca = accuracy(p, concept, "chain");
-  if (modes.includes("chain") && (ca === null || ca < 0.7)) return "chain";
-  const r = p.cards[concept]?.reps ?? 0;
-  if (r === 0) return "flashcard";
-  // never-tried modes first, then weakest accuracy, with a little randomness
-  const scored = modes.map((m) => {
-    const a = accuracy(p, concept, m);
-    return { m, score: (a === null ? -1 : a) + rng() * 0.25 };
-  });
-  scored.sort((x, y) => x.score - y.score);
-  return (scored[0]?.m ?? "flashcard") as Mode;
+  const avail: Mode[] = cat.modesFor(concept).filter((m) => m !== "sort" && m !== "order");
+  const ladder: Mode[] = avail.includes("formula") ? ["flashcard", "formula", "mcq", "chain", "calc", "cloze"] : ["flashcard", "mcq", "cloze"];
+  const order = ladder.filter((m) => avail.includes(m));
+  const passed: Mode[] = [];
+  let next: Mode | undefined;
+  for (const m of order) {
+    if (attempts(p, concept, m) >= 1 && (accuracy(p, concept, m) ?? 0) >= 0.7) passed.push(m);
+    else { next = m; break; }
+  }
+  // one time in four, revisit a rung already passed so it stays fresh
+  if (passed.length && next && rng() < 0.25) return passed[Math.floor(rng() * passed.length)] as Mode;
+  return next ?? order[Math.floor(rng() * order.length)] ?? "flashcard";
+}
+
+/** Difficulty for the modes that have levels. */
+export function levelFor(p: Progress, concept: string, mode: Mode): number | undefined {
+  if (mode === "calc") return calcLevelOf(p, concept);
+  if (mode === "chain") {
+    const a = accuracy(p, concept, "chain");
+    return a === null || a < 0.7 ? 1 : a < 0.85 ? 2 : 3;
+  }
+  return undefined;
 }
 
 /** Build a session: due concepts first, then weakest, then new; plus matching sort/order sets. */
@@ -88,16 +96,14 @@ export function buildSession(cat: Catalog, p: Progress, spec: SessionSpec): Item
   const usedSets = new Set<string>();
   for (const c of picked) {
     const mode = fixedMode ?? chooseMode(cat, p, c.id, rng);
-    const item = makeItem(cat, c.id, mode, variantFor(p, c.id, mode)) ?? makeItem(cat, c.id, "flashcard", variantFor(p, c.id, "flashcard"));
+    const item = makeItem(cat, c.id, mode, variantFor(p, c.id, mode), { level: levelFor(p, c.id, mode) }) ?? makeItem(cat, c.id, "flashcard", variantFor(p, c.id, "flashcard"));
     if (item) items.push(item);
   }
   if (!fixedMode) {
-    // exam focus: a few questions lifted from a generated exam scenario, every session
-    const sc = SCENARIOS[Math.floor(rng() * SCENARIOS.length)];
-    if (sc && (spec.chapter === undefined || spec.chapter >= 2)) {
-      const pool = sc.make(rng).filter((it) => spec.chapter === undefined || it.kind === "journal" || it.concept.includes(`.ch${spec.chapter}.`) || it.concept.includes(".ch2."));
-      const picks = shuffle(pool, rng).slice(0, Math.min(3, Math.max(1, Math.floor(size / 5))));
-      for (const it of picks) items.splice(Math.floor(rng() * (items.length + 1)), 0, it as Item);
+    // exam focus: two self-contained questions from the review-activity style, every session
+    if (spec.chapter === undefined || spec.chapter >= 2) {
+      const pool = allExamItems(rng).filter((it) => spec.chapter === undefined || it.concept.includes(`.ch${spec.chapter}.`) || it.concept.includes(".ch2."));
+      for (const it of shuffle(pool, rng).slice(0, 2)) items.splice(Math.floor(rng() * (items.length + 1)), 0, it as Item);
     }
     // sprinkle one sort or order set that touches the weakest picked concepts
     const ch = cat.chapters.filter((c) => spec.chapter === undefined || c.number === spec.chapter);

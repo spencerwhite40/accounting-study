@@ -1,6 +1,6 @@
 import { catalog, useApp, go } from "../App";
 import { STUDY_GUIDE, FORMULA_SHEET } from "../content/exam1";
-import { SCENARIOS } from "../engine/exam";
+import { EXAM_PARTS } from "../engine/exam";
 import { mastery, retrievability } from "../engine/store";
 import { Bar, masteryWord } from "./bits";
 
@@ -25,16 +25,19 @@ export function Exam() {
             <div className="small" style={{ opacity: .85 }}>study guide mastered · {Math.round(overall.covered * 100)}% touched</div>
           </div>
         </div>
-        <p className="small" style={{ opacity: .9, marginTop: 10 }}>Multiple choice, mostly calculations. One scenario, many figures.</p>
+        <p className="small" style={{ opacity: .9, marginTop: 10 }}>Short parts. Every question has its own figures.</p>
       </div>
 
-      <h3>Scenarios</h3>
-      {SCENARIOS.map((s) => (
-        <button key={s.id} className="card flat block" style={{ margin: "8px 0" }} onClick={() => go(`#/study?mode=exam&scenario=${s.id}`)}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>{s.title}</div>
-          <div className="small muted" style={{ whiteSpace: "normal" }}>{s.sub}</div>
-          <div className="tiny muted" style={{ marginTop: 4 }}>New numbers each run · ~20 questions</div>
-        </button>
+      {["Job costing", "Activity-based costing"].map((group) => (
+        <div key={group}>
+          <h3>{group}</h3>
+          {EXAM_PARTS.filter((x) => x.group === group).map((part) => (
+            <button key={part.id} className="card flat block" style={{ margin: "8px 0", whiteSpace: "normal" }} onClick={() => go(`#/study?mode=exam&scenario=${part.id}`)}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{part.title}</div>
+              <div className="small muted">{part.sub}</div>
+            </button>
+          ))}
+        </div>
       ))}
 
       <h3>Study guide</h3>

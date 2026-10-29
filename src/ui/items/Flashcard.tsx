@@ -8,7 +8,7 @@ import { haptic } from "../bits";
 /** Tap to flip; after flipping, swipe left = Again, right = Good, up = Easy, or use the buttons. */
 export function Flashcard({ item, hints, onDone }: ItemProps) {
   if (item.kind !== "flashcard") return null;
-  const { progress } = useApp();
+  const { progress, openConcept } = useApp();
   const [flipped, setFlipped] = useState(false);
   const [graded, setGraded] = useState<Grade | null>(null);
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
@@ -60,6 +60,7 @@ export function Flashcard({ item, hints, onDone }: ItemProps) {
           <div className="face back"><span className="lbl">{verdict ?? "Answer"}</span><div><TermText text={item.back} /></div></div>
         </div>
       </div>
+      {flipped && <button className="ghost small block" style={{ textAlign: "center", marginTop: 4 }} onClick={() => openConcept(item.concept)}>Full definition</button>}
       {!flipped && <button className="primary block" style={{ marginTop: 10 }} onClick={() => setFlipped(true)}>Show answer</button>}
       {flipped && graded === null && (
         <>

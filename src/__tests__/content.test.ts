@@ -39,7 +39,7 @@ describe("content integrity", () => {
       const m = makeItem(cat, c.id, "mcq", 1);
       expect(m?.kind).toBe("mcq");
       if (m?.kind === "mcq") {
-        expect(new Set(m.choices.map((x) => x.text)).size).toBe(4);
+        expect(new Set(m.choices.map((x) => x.text)).size).toBe(3);
         expect(m.choices[m.answer]?.concept).toBe(c.id);
       }
     }
@@ -152,12 +152,13 @@ describe("equation drills", () => {
   });
 });
 
-import { SCENARIOS } from "../engine/exam";
+import { jobCostingScenario, abcScenario, allExamItems, EXAM_PARTS } from "../engine/exam";
+import { shortOf, hasShort, sameMeaning } from "../content/short";
 import { STUDY_GUIDE, EXAM_WEIGHT } from "../content/exam1";
 
 describe("exam scenarios", () => {
   it("every scenario item references a real concept, journal entries balance, numbers are finite and non-negative balances", () => {
-    for (const sc of SCENARIOS) {
+    for (const sc of [{ id: "job", make: jobCostingScenario }, { id: "abc", make: abcScenario }]) {
       for (let seed = 1; seed <= 30; seed++) {
         const items = sc.make(mulberry32(seed * 31));
         expect(items.length).toBeGreaterThan(8);
@@ -177,7 +178,7 @@ describe("exam scenarios", () => {
     }
   });
   it("job scenario is internally consistent: WIP and FG roll forward, COGS adjusts by the variance", () => {
-    const items = SCENARIOS[0]!.make(mulberry32(7));
+    const items = jobCostingScenario(mulberry32(7));
     const get = (id: string) => { const it = items.find((x) => x.id === id); return it && it.kind === "calc" ? it.inst : undefined; };
     const applied = get("ex:job:applied")!, actual = get("ex:job:actual")!, ou = get("ex:job:overunder")!;
     expect(Math.abs(actual.answer - applied.answer)).toBeCloseTo(ou.answer, 2);
@@ -185,7 +186,7 @@ describe("exam scenarios", () => {
     const dl = tmc.givens.find((g) => g.label === "Direct labor")!.value;
     expect(tmc.answer).toBeCloseTo(dm.answer + dl + applied.answer, 2);
     const adj = get("ex:job:adjcogs")!;
-    const cogs = adj.givens.find((g) => g.label.startsWith("Unadjusted"))!.value;
+    const cogs = adj.givens.find((g) => g.label.startsWith("Cost of goods sold before"))!.value;
     expect(adj.answer).toBeCloseTo(cogs + (actual.answer - applied.answer), 2);
   });
   it("study guide references real concepts and exam weights favour job costing and ABC", () => {
@@ -212,5 +213,83 @@ describe("calculator parser", () => {
     expect(evaluate("(5")).toBeNull();
     expect(evaluate("5 ÷ 0")).toBeNull();
     expect(evaluate("alert(1)")).toBeNull();
+  });
+});
+
+
+describe("question quality", () => {
+  it("every term has a short line, spelled out and under 100 characters", () => {
+    for (const c of cat.concepts.values()) {
+      if (!hasShort(c)) continue;
+      expect(shortOf(c).length, c.id).toBeLessThanOrEqual(100);
+    }
+    const missing = [...cat.concepts.values()].filter((c) => !hasShort(c) && !/total-manufacturing|direct-materials-used/.test(c.id));
+    expect(missing.map((c) => c.id)).toEqual([]);
+  });
+  it("no raw abbreviations in text the learner reads", () => {
+    const banned = /\b(COGM|COGS|MOH|DLHs?|WIP|FG|RM|S&A|SG&A)\b/;
+    const bad: string[] = [];
+    const check = (where: string, t?: string) => { if (t && banned.test(t.replace(/\{\{[^}]*\}\}/g, ""))) bad.push(`${where}: ${t.slice(0, 60)}`); };
+    for (const ch of chapters) {
+      for (const c of ch.concepts) { check(c.id + " plain", c.plain); check(c.id + " formula", c.formula); check(c.id + " example", c.example); }
+      for (const n of ch.calcs) { check(n.id + " name", n.name); check(n.id + " formula", n.formula); check(n.id + " when", n.when); check(n.id + " watch", n.watch); for (const i of Object.values(n.inputs)) check(n.id + " input", i.label); }
+      for (const z of ch.clozes) check(z.id, z.text);
+    }
+    for (const it of allExamItems(mulberry32(3))) { if (it.kind === "journal") check(it.id, it.text); else { check(it.id + " title", it.title); for (const g of it.inst.givens) check(it.id + " given", g.label); } }
+    expect(bad).toEqual([]);
+  });
+  it("multiple choice never offers a synonym or a duplicate meaning as a wrong answer", () => {
+    for (const c of cat.concepts.values()) for (const v of [0, 1, 2, 3]) {
+      const m = makeItem(cat, c.id, "mcq", v);
+      if (m?.kind !== "mcq") continue;
+      expect(m.choices.length).toBe(3);
+      for (const ch of m.choices) if (ch.concept !== c.id) expect(sameMeaning(c, cat.concept(ch.concept)), `${c.id} vs ${ch.concept}`).toBe(false);
+    }
+  });
+  it("every fill-in has exactly one blank and four distinct tap choices that include the answer", () => {
+    for (const c of cat.concepts.values()) for (const v of [0, 1, 2, 3, 4, 5]) {
+      const z = makeItem(cat, c.id, "cloze", v);
+      if (z?.kind !== "cloze") continue;
+      const blanks = z.parts.filter((p) => typeof p !== "string");
+      expect(blanks.length, `${c.id} v${v}`).toBe(1);
+      expect(z.choices.length, `${c.id} v${v}`).toBe(4);
+      expect(new Set(z.choices.map((x) => x.toLowerCase())).size).toBe(4);
+      expect(z.choices.some((x) => (blanks[0] as { answers: string[] }).answers.includes(x))).toBe(true);
+    }
+  });
+  it("equation questions never offer two correct-looking equations", () => {
+    for (const n of cat.graph.nodes.values()) for (const v of [0, 1, 3, 4]) {
+      const q = makeItem(cat, n.concept, "formula", v);
+      if (q?.kind !== "mcq") continue;
+      const right = q.choices[q.answer]!;
+      for (const ch of q.choices) if (ch !== right) expect(ch.concept === right.concept, `${n.id} v${v}`).toBe(false);
+    }
+  });
+  it("Numbers ramps: level 1 has nothing hidden, level 2 hides one figure, level 3 may chain further", () => {
+    let l2 = 0;
+    for (const c of cat.concepts.values()) {
+      const one = makeItem(cat, c.id, "calc", 0, { level: 1 });
+      if (one?.kind === "calc") { expect(one.inst.hidden.length).toBe(0); expect(one.inst.chain.length).toBe(1); }
+      const two = makeItem(cat, c.id, "calc", 0, { level: 2 });
+      if (two?.kind === "calc" && two.level === 2) { l2++; expect(two.inst.chain.length).toBe(2); }
+    }
+    expect(l2).toBeGreaterThan(5);
+  });
+  it("exam questions are short: every part is small and each question carries its own figures", () => {
+    for (const part of EXAM_PARTS) {
+      const items = part.make(mulberry32(11));
+      expect(items.length).toBeGreaterThanOrEqual(5);
+      expect(items.length).toBeLessThanOrEqual(8);
+      for (const it of items) {
+        if (it.kind === "journal") expect(it.text.length).toBeLessThan(200);
+        else expect(it.inst.givens.length).toBeLessThanOrEqual(7);
+      }
+    }
+  });
+  it("sessions climb the ladder: a new concept starts with a flashcard", () => {
+    const p = emptyProgress();
+    const items = buildSession(cat, p, { mode: "mixed", size: 10, cram: true });
+    const concept = items.filter((it) => it.kind !== "sort" && it.kind !== "order" && !it.id.startsWith("ex:") && "concept" in it);
+    expect(concept.every((it) => it.kind === "flashcard")).toBe(true);
   });
 });

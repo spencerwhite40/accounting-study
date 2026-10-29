@@ -21,7 +21,7 @@ export const STUDY_GUIDE: GuideSection[] = [
     { id: "2a", text: "Service, merchandising and manufacturing companies and their inventories", concepts: [c2("raw-materials-inventory"), c2("work-in-process-inventory"), c2("finished-goods-inventory")] },
     { id: "2b", text: "The value chain and its elements", concepts: [c2("value-chain"), c2("research-and-development")] },
     { id: "2c", text: "Cost objects, direct costs and indirect costs", concepts: [c2("cost-object"), c2("direct-cost"), c2("indirect-cost"), c2("trace"), c2("allocate")] },
-    { id: "2d", text: "Inventoriable costs (DM, DL, MOH) vs period costs", concepts: [c2("inventoriable-product-costs"), c2("period-costs"), c2("direct-material"), c2("direct-labor"), c2("manufacturing-overhead")] },
+    { id: "2d", text: "Inventoriable costs (direct materials, direct labor, manufacturing overhead) vs period costs", concepts: [c2("inventoriable-product-costs"), c2("period-costs"), c2("direct-material"), c2("direct-labor"), c2("manufacturing-overhead")] },
     { id: "2e", text: "Prime costs vs conversion costs", concepts: [c2("prime-costs"), c2("conversion-costs")] },
     { id: "2f", text: "Controllable vs uncontrollable costs", concepts: [c2("controllable-costs")] },
     { id: "2g", text: "Relevant vs irrelevant costs", concepts: [c2("differential-cost"), c2("sunk-costs")] },
@@ -30,7 +30,7 @@ export const STUDY_GUIDE: GuideSection[] = [
   ] },
   { title: "3. Job costing", items: [
     { id: "3a", text: "Process costing vs job costing", concepts: [c3("job-costing"), c3("process-costing")] },
-    { id: "3b", text: "Inventory flow: raw materials → WIP → finished goods", concepts: [c2("raw-materials-inventory"), c2("work-in-process-inventory"), c2("finished-goods-inventory"), c2("cost-of-goods-manufactured"), c2("cost-of-goods-sold")] },
+    { id: "3b", text: "Inventory flow: raw materials → work in process → finished goods", concepts: [c2("raw-materials-inventory"), c2("work-in-process-inventory"), c2("finished-goods-inventory"), c2("cost-of-goods-manufactured"), c2("cost-of-goods-sold")] },
     { id: "3c", text: "Documents in a job cost system and how they are used", concepts: [c3("production-schedule"), c3("bill-of-materials"), c3("raw-materials-record"), c3("job-cost-record"), c3("materials-requisition"), c3("labor-time-record"), c3("purchase-order"), c3("receiving-report")] },
     { id: "3d", text: "Allocating manufacturing overhead to jobs", concepts: [c3("predetermined-overhead-rate"), c3("applied-overhead"), c3("cost-driver")] },
     { id: "3e", text: "Disposing of over/under-allocated overhead", concepts: [c3("underallocated-overhead"), c3("overallocated-overhead")] },
@@ -42,7 +42,7 @@ export const STUDY_GUIDE: GuideSection[] = [
     { id: "4c", text: "The cost hierarchy: unit, batch, product, facility", concepts: [c4("unit-level-activities"), c4("batch-level-activities"), c4("product-level-costs"), c4("facility-level-activities")] },
     { id: "4d", text: "Activity-based management", concepts: [c4("activity-based-management")] },
     { id: "4e", text: "Value-added vs non-value-added activities", concepts: [c4("value-added-activities"), c4("non-value-added-activities"), c4("value-engineering")] },
-    { id: "4f", text: "Benefits of ABC / ABM and signs of cost distortion", concepts: [c4("activity-based-costing"), c4("cost-distortion")] },
+    { id: "4f", text: "Benefits of activity-based costing / ABM and signs of cost distortion", concepts: [c4("activity-based-costing"), c4("cost-distortion")] },
   ] },
   { title: "5. Lean vs traditional production", items: [
     { id: "5a", text: "JIT, cells, cross-training, small batches, setups, quality, supply chain", concepts: [c4("lean-production"), c1("jit"), c1("supply-chain-management"), c1("lean-production")] },
@@ -74,11 +74,11 @@ export const FORMULA_SHEET = [
   ] },
   { title: "Chapter 3 · Job costing", lines: [
     "O/H rate = Estimated total manufacturing overhead costs ÷ Estimated total amount of allocable base",
-    "Applied (allocated) OH = O/H rate × base incurred",
+    "Applied (allocated) overhead = O/H rate × base incurred",
   ] },
   { title: "Chapter 4 · Activity-based costing", lines: [
     "Same as job costing, except you find the O/H rate for each activity or department using that activity's allocable base.",
-    "Add the applied OH for all activities to arrive at total applied (allocated) OH.",
+    "Add the applied overhead for all activities to arrive at total applied (allocated) overhead.",
   ] },
 ];
 

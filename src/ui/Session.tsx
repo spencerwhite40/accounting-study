@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { catalog, useApp, go } from "../App";
-import { buildSession } from "../engine/session";
+import { buildSession, levelFor } from "../engine/session";
 import { makeItem, type Item, type Mode, MODE_LABEL, itemConcepts, makeCalc, itemMode, mulberry32 } from "../engine/items";
-import { review, confuse, Rating, type Grade, mastery, humanInterval } from "../engine/store";
+import { review, confuse, Rating, type Grade, mastery, humanInterval, recordCalc, calcLevelOf } from "../engine/store";
 import { fmt as fmtNum } from "../engine/grade";
-import { generate } from "../engine/calc";
 import { Flashcard } from "./items/Flashcard";
 import { Mcq } from "./items/Mcq";
 import { Cloze } from "./items/Cloze";
@@ -13,10 +12,9 @@ import { Order } from "./items/Order";
 import { Calc } from "./items/Calc";
 import { Chain } from "./items/Chain";
 import { Journal } from "./items/Journal";
-import { SCENARIOS } from "../engine/exam";
-import { useState as useReactState } from "react";
+import { EXAM_PARTS } from "../engine/exam";
 import { haptic, masteryClass, Ring } from "./bits";
-import { CalculatorSheet, CalculatorFab, closeCalculator, useCalculatorOpen } from "./Calculator";
+import { CalculatorSheet, CalculatorButton, closeCalculator, useCalculatorOpen } from "./Calculator";
 
 export interface Result {
   rating: Grade;
@@ -48,18 +46,18 @@ export function Session({ params }: { params: URLSearchParams }) {
       const items: Item[] = [];
       for (const m of modes) {
         if (m === "calc" && node) {
-          const inst = generate(catalog.graph, node, mulberry32(Date.now()), { chainProb: 0.7, maxDepth: 3 });
-          items.push({ kind: "calc", id: `calc:${node}:x`, concept, title: inst.title, inst });
+          const it = makeCalc(catalog, concept, 0, calcLevelOf(progress, concept), node);
+          if (it) items.push(it);
         } else {
-          const it = makeItem(catalog, concept, m, Math.floor(Math.random() * 4));
+          const it = makeItem(catalog, concept, m, Math.floor(Math.random() * 4), { level: levelFor(progress, concept, m) });
           if (it) items.push(it);
         }
       }
       return items;
     }
     if (isExam && scenarioId) {
-      const sc = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
-      return sc ? (sc.make(mulberry32(Date.now())) as Item[]) : [];
+      const part = EXAM_PARTS.find((x) => x.id === scenarioId) ?? EXAM_PARTS[0];
+      return part ? (part.make(mulberry32(Date.now())) as Item[]) : [];
     }
     if (conceptList && conceptList.length) {
       const items: Item[] = [];
@@ -108,6 +106,7 @@ export function Session({ params }: { params: URLSearchParams }) {
     update((p) => {
       for (const c of itemConcepts(item)) review(p, c, itemMode(item), r.rating, hints);
       if (r.confusedWith && item.kind !== "sort" && item.kind !== "order" && item.kind !== "chain") confuse(p, item.concept, r.confusedWith);
+      if (item.kind === "calc" && !item.id.startsWith("ex:")) recordCalc(p, item.concept, r.rating !== Rating.Again);
       const own = new Set(itemConcepts(item));
       for (const s of r.stepReviews ?? []) if (!own.has(s.concept)) review(p, s.concept, "calc", s.ok ? Rating.Good : Rating.Again, 0);
     });
@@ -122,7 +121,7 @@ export function Session({ params }: { params: URLSearchParams }) {
   }
   const another = () => {
     const cid = itemConcepts(item)[0] as string;
-    const replacement = item.kind === "calc" ? makeCalc(catalog, cid, Math.floor(Math.random() * 100), item.inst.hidden.length > 0) : makeItem(catalog, cid, itemMode(item), Math.floor(Math.random() * 100));
+    const replacement = item.kind === "calc" && item.id.startsWith("ex:") ? undefined : item.kind === "calc" ? makeCalc(catalog, cid, Math.floor(Math.random() * 100), item.level) : item.kind === "journal" ? undefined : makeItem(catalog, cid, itemMode(item), Math.floor(Math.random() * 100), { level: levelFor(progress, cid, itemMode(item)) });
     if (replacement) {
       const copy = items.slice();
       copy[i] = replacement;
@@ -138,7 +137,6 @@ export function Session({ params }: { params: URLSearchParams }) {
   const props: ItemProps = { item, hints, onDone };
   const conceptId = itemConcepts(item)[0] as string;
   const c = catalog.concept(conceptId);
-  const context = item.kind === "calc" || item.kind === "journal" ? item.context : undefined;
   return (
     <div className="screen session" style={calcOpen ? { paddingBottom: "min(62dvh, 420px)" } : undefined}>
       <div className="topbar">
@@ -153,14 +151,14 @@ export function Session({ params }: { params: URLSearchParams }) {
       </div>
       <div className="row" style={{ marginBottom: 8 }}>
         <span className="pill accent">{MODE_LABEL[itemMode(item)]}</span>
-        <span className="muted tiny grow" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Ch {c.chapter} · {c.topic}</span>
-        {!done && <button className="ghost small" style={{ minHeight: 36 }} onClick={another}>Another</button>}
+        <span className="muted tiny grow">Ch {c.chapter}</span>
+        {!done && item.kind !== "journal" && !(item.kind === "calc" && item.id.startsWith("ex:")) && <button className="ghost small" style={{ minHeight: 36 }} onClick={another}>Another</button>}
+        {!done && (item.kind === "calc" || item.kind === "journal") && <CalculatorButton />}
         {!done && hints < hintList.length && <button className="soft small" style={{ minHeight: 36 }} onClick={() => { setHints(hints + 1); haptic("tap"); }}>Hint {hints + 1}/{hintList.length}</button>}
       </div>
       {hintList.slice(0, hints).map((h, k) => hidden.includes(k) ? null : (
         <div key={k} className="hint"><span className="grow">{h}</span><button className="x" aria-label="Dismiss hint" onClick={() => setHidden([...hidden, k])}>✕</button></div>
       ))}
-      {context && <ContextCard ctx={context} />}
 
       <div key={`${item.id}:${itemKey}`} className="item-enter">
         {item.kind === "flashcard" && <Flashcard {...props} />}
@@ -173,7 +171,6 @@ export function Session({ params }: { params: URLSearchParams }) {
         {item.kind === "journal" && <Journal {...props} />}
       </div>
 
-      {(item.kind === "calc" || item.kind === "journal") && !done && <CalculatorFab />}
       <CalculatorSheet />
       {done && (
         <div className="sticky-bottom row">
@@ -264,7 +261,7 @@ function hintsFor(item: Item): string[] {
     }
     case "journal":
       return [
-        "Factory cost → Raw Materials, WIP or MOH. Selling/admin → an expense.",
+        "Factory cost → Raw Materials, work in process or manufacturing overhead. Selling/admin → an expense.",
         `${item.debits.length} debit${item.debits.length > 1 ? "s" : ""}, ${item.credits.length} credit${item.credits.length > 1 ? "s" : ""}. Must balance.`,
         `Debit ${item.debits[0]?.account}.`,
       ];
@@ -284,21 +281,4 @@ function hintsFor(item: Item): string[] {
       return hs;
     }
   }
-}
-
-function ContextCard({ ctx }: { ctx: { title: string; intro: string; lines: string[] } }) {
-  const [open, setOpen] = useReactState(false);
-  return (
-    <div className="card flat" style={{ padding: 12 }}>
-      <button className="ghost block" style={{ padding: 0, minHeight: 0, whiteSpace: "normal" }} onClick={() => setOpen(!open)}>
-        <div className="row"><span className="eyebrow grow">Scenario · {ctx.title}</span><span className="muted small">{open ? "hide" : "show"}</span></div>
-      </button>
-      {open && (
-        <div className="small" style={{ marginTop: 8 }}>
-          <p>{ctx.intro}</p>
-          {ctx.lines.map((l, i) => <p key={i} style={{ margin: "4px 0" }}>{l}</p>)}
-        </div>
-      )}
-    </div>
-  );
 }

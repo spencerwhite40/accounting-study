@@ -61,14 +61,10 @@ export function Home() {
       </div>
 
       <h3>Exam 1</h3>
-      <div className="card flat">
-        <div className="row"><div className="grow"><div style={{ fontWeight: 700 }}>Review-activity scenarios</div><div className="small muted">Journal entries · balances · over/under · statements</div></div></div>
-        <div className="row" style={{ marginTop: 10 }}>
-          <button className="primary grow" style={{ whiteSpace: "normal", padding: "10px 8px" }} onClick={() => go("#/study?mode=exam&scenario=job")}>Job costing flow</button>
-          <button className="primary grow" style={{ whiteSpace: "normal", padding: "10px 8px" }} onClick={() => go("#/study?mode=exam&scenario=abc")}>ABC flow</button>
-          <button className="soft" onClick={() => go("#/exam")}>Readiness</button>
-        </div>
-      </div>
+      <button className="card flat block" style={{ margin: "8px 0", whiteSpace: "normal" }} onClick={() => go("#/exam")}>
+        <div style={{ fontWeight: 700 }}>Exam practice</div>
+        <div className="small muted">Short parts: journal entries, overhead, balances, statements. Plus your study guide.</div>
+      </button>
 
       <h3>Equations ladder</h3>
       <div className="card">

@@ -19,6 +19,9 @@ export interface Progress {
   stats: Record<string, Partial<Record<Mode, ModeStat>>>;
   /** "a|b" (sorted ids) → times confused */
   confusions: Record<string, number>;
+  /** Numbers difficulty per equation: 1 one equation, 2 one missing figure, 3 full chain. */
+  calcLevel?: Record<string, number>;
+  calcStreak?: Record<string, number>;
   log: ReviewLog[];
   settings: { dailyNew: number; sessionSize: number };
 }
@@ -193,4 +196,26 @@ export function streak(p: Progress, now = new Date()): number {
     else if (i > 0) break;
   }
   return n;
+}
+
+/** Move a learner up a level after two right in a row, down after two wrong in a row. */
+export function recordCalc(p: Progress, concept: string, right: boolean): void {
+  const lv = (p.calcLevel ??= {});
+  const st = (p.calcStreak ??= {});
+  const cur = lv[concept] ?? 1;
+  const run = st[concept] ?? 0;
+  if (right) {
+    const n = run > 0 ? run + 1 : 1;
+    if (n >= 2 && cur < 3) { lv[concept] = cur + 1; st[concept] = 0; } else st[concept] = n;
+  } else {
+    const n = run < 0 ? run - 1 : -1;
+    if (n <= -2 && cur > 1) { lv[concept] = cur - 1; st[concept] = 0; } else st[concept] = n;
+  }
+}
+export function calcLevelOf(p: Progress, concept: string): number {
+  return p.calcLevel?.[concept] ?? 1;
+}
+export function attempts(p: Progress, concept: string, mode: Mode): number {
+  const s = p.stats[concept]?.[mode];
+  return s ? s.right + s.wrong : 0;
 }

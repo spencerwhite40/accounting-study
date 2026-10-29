@@ -28,6 +28,8 @@ function uniq<T>(a: T[]): T[] {
 }
 
 export interface GenOptions {
+  /** Most inputs of the asked-for equation that may be hidden behind a prior calculation. */
+  maxChained?: number;
   /** 0 = never chain (all inputs given), 1 = always chain where possible. */
   chainProb: number;
   maxDepth: number;
@@ -45,7 +47,7 @@ export function generate(graph: CalcGraph, targetId: string, rng: () => number, 
   // Values already produced anywhere in this problem, keyed by input key + label.
   // A node whose input has the same key and label reuses the value instead of
   // generating a contradictory one (e.g. "Units produced" in total cost and
-  // average cost, or DM/DL per unit under plantwide and ABC).
+  // average cost, or direct materials/direct labor per unit under plantwide and activity-based costing).
   const pool = new Map<string, number>();
   const poolKey = (key: string, label: string) => `${key}|${label}`;
 
@@ -65,8 +67,10 @@ export function generate(graph: CalcGraph, targetId: string, rng: () => number, 
     };
     takeShared();
     // children first: whatever they generate becomes shareable by this node
+    let chainedHere = 0;
     for (const [key, spec] of Object.entries(node.inputs)) {
-      if (spec.from && !(key in fixed) && depth < opts.maxDepth && rng() < opts.chainProb) {
+      if (spec.from && !(key in fixed) && depth < opts.maxDepth && (depth > 0 || chainedHere < (opts.maxChained ?? Infinity)) && rng() < opts.chainProb) {
+        chainedHere++;
         fixed[key] = solve(spec.from, depth + 1);
         derivedKeys.add(key);
         takeShared();

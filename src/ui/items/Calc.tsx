@@ -66,7 +66,8 @@ export function Calc({ item, hints, onDone }: ItemProps) {
   return (
     <>
       <div className="card">
-        <b>{inst.title}</b>
+        {item.level > 0 && <div className="level">Level {item.level} of 3 · {item.level === 1 ? "one equation" : item.level === 2 ? "one figure is missing" : "full chain"}</div>}
+        <div><b>{inst.title}</b></div>
         {inst.scenario && <p className="small muted">{inst.scenario}</p>}
         <ul className="givens">
           {inst.givens.map((g, i) => <Given key={i} label={g.label} value={g.unit === "%" ? g.value : g.value} display={fmt(g.value, g.unit)} />)}
