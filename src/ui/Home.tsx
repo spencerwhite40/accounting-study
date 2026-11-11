@@ -4,6 +4,7 @@ import { mastery, retrievability, accuracy, streak, retentionNow, dueForecast } 
 import { MODE_LABEL, type Mode } from "../engine/items";
 import { Ring, Bar, Heat, masteryWord } from "./bits";
 import { COURSE } from "../content";
+import { ExamSwitch } from "../ex2/ExamSwitch";
 
 export function Home() {
   const { progress } = useApp();
@@ -37,6 +38,7 @@ export function Home() {
   const modes: Mode[] = ["flashcard", "sort", "mcq", "cloze", "order"];
   return (
     <div className="screen">
+      <ExamSwitch />
       <div className="eyebrow">{COURSE.name}</div>
       <h1>{greeting()}</h1>
 
