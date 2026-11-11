@@ -3,7 +3,7 @@ import { useApp, go } from "../App";
 import { review, Rating, type Grade, mastery, humanInterval } from "../engine/store";
 import { haptic, Ring, masteryClass } from "../ui/bits";
 import { buildSession, playConcept, termConcept, factConcept, figureConcept, KIND_LABEL, type Q } from "./engine";
-import { CHAPTERS, CHAPTER_TITLE, type Chapter } from "./types";
+import { CHAPTERS, CHAPTER_TITLE, chapterHead, type Chapter } from "./types";
 import { PLAY_BY_ID } from "./content";
 import { PlayCard } from "./Card";
 
@@ -65,7 +65,7 @@ export function Drill({ params }: { params: URLSearchParams }) {
       </div>
       <div className="row" style={{ marginBottom: 8 }}>
         <span className="pill accent">{isLearn ? "New pattern" : KIND_LABEL[q.kind]}</span>
-        <span className="muted tiny">Chapter {ch}</span>
+        <span className="muted tiny">{chapterHead(ch)}</span>
       </div>
 
       <div key={q.id} className="item-enter">

@@ -1,6 +1,6 @@
 import { useApp, go } from "../App";
 import { PLAYS } from "./content";
-import { CHAPTERS, CHAPTER_TITLE } from "./types";
+import { CHAPTERS, CHAPTER_TITLE, chapterHead } from "./types";
 import { isDue } from "../engine/store";
 import { playConcept, playMastery, readiness } from "./engine";
 import { Ring, Bar, masteryClass } from "../ui/bits";
@@ -18,7 +18,7 @@ export function Ex2Home() {
   return (
     <div className="screen">
       <ExamSwitch />
-      <div className="eyebrow">Exam 2 · chapters 5 to 8</div>
+      <div className="eyebrow">Exam 2 · everything on the study guide</div>
       <h1>Know the problem. Know the route.</h1>
 
       <div className="card hero">
@@ -42,7 +42,7 @@ export function Ex2Home() {
           return (
             <button key={c} className="card flat chapter-row" onClick={() => go(`#/x2/drill?ch=${c}`)}>
               <div className="row">
-                <div className="grow"><b>Chapter {c}</b> · {CHAPTER_TITLE[c]}<div className="tiny muted">{pool.length} problem types · facts · numbers{d ? ` · ${d} due` : ""}</div></div>
+                <div className="grow"><b>{chapterHead(c)}</b> · {CHAPTER_TITLE[c]}<div className="tiny muted">{pool.length} problem types · facts · numbers{d ? ` · ${d} due` : ""}</div></div>
                 <span className="num" style={{ fontSize: 20 }}>{Math.round(m * 100)}%</span>
               </div>
               <div style={{ marginTop: 8 }}><Bar value={m} /></div>

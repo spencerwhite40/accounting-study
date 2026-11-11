@@ -1,7 +1,8 @@
 import type { Term } from "./types";
+import { GUIDE_TERMS } from "./plays-guide";
 
 /** Key terms from the course sheets (plus lecture terms), one plain line each. */
-export const TERMS: Term[] = [
+const BASE_TERMS: Term[] = [
   // Chapter 5
   { id: "equivalent-units", chapter: 5, term: "Equivalent units", line: "Partly finished units counted as whole finished units." },
   { id: "production-cost-report", chapter: 5, term: "Production cost report", line: "Department report of units, cost per equivalent unit and where the cost went." },
@@ -53,5 +54,7 @@ export const TERMS: Term[] = [
   { id: "special-order", chapter: 8, term: "Special order", line: "A one-time sale outside normal business." },
   { id: "segment-margin", chapter: 8, term: "Segment margin", line: "A segment's margin after its own variable and traceable fixed costs." },
 ];
+
+export const TERMS: Term[] = [...GUIDE_TERMS, ...BASE_TERMS];
 
 export const TERM_BY_ID = new Map(TERMS.map((t) => [t.id, t]));

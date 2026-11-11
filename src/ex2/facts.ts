@@ -1,4 +1,5 @@
 import type { Chapter } from "./types";
+import { GUIDE_FACTS } from "./facts-guide";
 
 /** One quick fact check: a short question, the right answer, and two believable wrong ones. */
 export interface Fact { id: string; chapter: Chapter; topic: string; q: string; a: string; wrong: [string, string]; why?: string }
@@ -6,7 +7,7 @@ export interface Fact { id: string; chapter: Chapter; topic: string; q: string; 
 const f = (id: string, chapter: Chapter, topic: string, q: string, a: string, w1: string, w2: string, why?: string): Fact =>
   ({ id, chapter, topic, q, a, wrong: [w1, w2], ...(why ? { why } : {}) });
 
-export const FACTS: Fact[] = [
+const BASE_FACTS: Fact[] = [
   // ───────── Chapter 5 · Process costing ─────────
   f("5-fit", 5, "system", "Which products suit process costing?", "Identical units, such as bricks or bottles", "Custom one-off projects", "Anything with high cost"),
   f("5-collect", 5, "system", "Process costing collects cost by…", "Department", "Job", "Customer order"),
@@ -219,4 +220,5 @@ export const FACTS: Fact[] = [
   f("8-con-first", 8, "constraint", "Under a constraint, make first the product with…", "Highest margin per constraint hour", "Highest sales", "Lowest cost"),
 ];
 
+export const FACTS: Fact[] = [...GUIDE_FACTS, ...BASE_FACTS];
 export const FACT_BY_ID = new Map(FACTS.map((x) => [x.id, x]));

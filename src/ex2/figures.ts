@@ -360,6 +360,83 @@ export const FIGURES: FigTpl[] = [
       };
     },
   },
+  {
+    id: "regression", chapter: 6, topic: "regression", name: "Cost from regression output",
+    make(r) {
+      const a = pick(r, [30000, 38900, 40000]);
+      const b = pick(r, [4, 4.5, 5, 6]);
+      const X = pick(r, [8000, 9000, 10000]);
+      return {
+        q: `Regression output: intercept ${$(a)}, X variable ${$(b)}. Predicted cost at ${num(X)} units?`,
+        ans: $(a + b * X),
+        wrong: [[$(b * X), "You left out the intercept, the fixed cost."], [$((a + b) * X), "The intercept is added once, not multiplied."], [$(a * b + X), "That mixes the pieces."]],
+        how: "Intercept + (X coefficient × units).",
+      };
+    },
+  },
+  {
+    id: "mix-be", chapter: 7, topic: "mix", name: "Multi-product breakeven",
+    make(r) {
+      const rA = pick(r, [0.4, 0.5, 0.6]);
+      const rB = pick(r, [0.1, 0.2, 0.3]);
+      const SA = 100000, SB = 300000;
+      const overall = (rA * SA + rB * SB) / (SA + SB);
+      const BE = pick(r, [200000, 400000]);
+      const F = Math.round(overall * BE);
+      return {
+        q: `Product A: sales ${$(SA)}, contribution margin ${$(rA * SA)}. Product B: sales ${$(SB)}, contribution margin ${$(rB * SB)}. Fixed costs ${$(F)}. Breakeven sales?`,
+        ans: $(F / overall),
+        wrong: [[$(F / ((rA + rB) / 2)), "Do not average the two ratios. Weight by sales."], [$(F / rA), "That uses product A alone."], [$(F / rB), "That uses product B alone."]],
+        how: "Fixed ÷ overall ratio, where overall ratio = total margin ÷ total sales.",
+      };
+    },
+  },
+  {
+    id: "abc-rate", chapter: 4, topic: "steps", name: "Activity rate",
+    make(r) {
+      const rate = pick(r, [100, 150, 200, 250]);
+      const n = pick(r, [300, 400, 500]);
+      const H = pick(r, [10000, 20000, 30000]);
+      const P = rate * n;
+      return {
+        q: `Setup cost pool ${$(P)}. ${num(n)} setups in total. ${num(H)} direct labor hours in total. Rate per setup?`,
+        ans: $(rate),
+        wrong: [[$(P / H), "That uses labor hours. Setups have their own driver."], [$(P / (n + H)), "You added two different drivers."], [$(P / (n * 2)), "You halved the usage."]],
+        how: "Cost pool ÷ total usage of its own driver.",
+      };
+    },
+  },
+  {
+    id: "abc-job", chapter: 4, topic: "steps", name: "Job overhead",
+    make(r) {
+      const r1 = pick(r, [100, 200, 250]);
+      const r2 = pick(r, [30, 40, 50]);
+      const u1 = pick(r, [4, 6, 12]);
+      const u2 = pick(r, [10, 20, 30]);
+      return {
+        q: `Setup rate ${$(r1)} per setup. Inspection rate ${$(r2)} per inspection. The job needs ${u1} setups and ${u2} inspections. Overhead for the job?`,
+        ans: $(r1 * u1 + r2 * u2),
+        wrong: [[$(r1 * u1), "You left out inspections."], [$(r2 * u2), "You left out setups."], [$((r1 + r2) * (u1 + u2)), "Each rate goes with its own usage."]],
+        how: "Add (rate × usage) for each activity.",
+      };
+    },
+  },
+  {
+    id: "coq-pct", chapter: 9, topic: "coq", name: "Quality cost percent of sales",
+    make(r) {
+      const a = pick(r, [20000, 30000]);
+      const b = pick(r, [30000, 40000]);
+      const c = pick(r, [50000, 60000]);
+      const d = pick(r, [80000, 100000]);
+      const S = 1000000;
+      return {
+        q: `Prevention ${$(a)}, appraisal ${$(b)}, internal failure ${$(c)}, external failure ${$(d)}. Sales ${$(S)}. Quality cost as a percent of sales?`,
+        ans: pc((a + b + c + d) / S),
+        wrong: [[pc((c + d) / S), "That is failure costs only."], [pc((a + b) / S), "That is prevention and appraisal only."], [pc((a + b + c) / S), "You left out external failure."]],
+        how: "All four categories added ÷ sales.",
+      };
+    },
+  },
 ];
 
 export const FIGURE_BY_ID = new Map(FIGURES.map((x) => [x.id, x]));

@@ -1,7 +1,8 @@
 import type { Play } from "./types";
+import { GUIDE_PLAYS } from "./plays-guide";
 
 /** Exam 2 problem patterns, chapters 5 to 8. Written for recognition: what you see, what you need, what to do. */
-export const PLAYS: Play[] = [
+const BASE_PLAYS: Play[] = [
   // ───────────── Chapter 5: Process costing ─────────────
   {
     id: "p5-system", chapter: 5, name: "Job order or process costing",
@@ -1033,4 +1034,5 @@ export const PLAYS: Play[] = [
   },
 ];
 
+export const PLAYS: Play[] = [...GUIDE_PLAYS, ...BASE_PLAYS];
 export const PLAY_BY_ID = new Map(PLAYS.map((p) => [p.id, p]));

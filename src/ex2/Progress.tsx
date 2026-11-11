@@ -1,7 +1,7 @@
 import { useApp, go } from "../App";
 import { PLAYS } from "./content";
 import { TERMS } from "./terms";
-import { CHAPTERS, CHAPTER_TITLE } from "./types";
+import { CHAPTERS, CHAPTER_TITLE, chapterHead } from "./types";
 import { playConcept, playMastery, readiness, termConcept } from "./engine";
 import { accuracy, mastery, streak } from "../engine/store";
 import { Ring, Bar, masteryClass } from "../ui/bits";
@@ -48,7 +48,7 @@ export function Ex2Progress() {
           const m = cs.reduce((a, x) => a + x.mastery, 0) / cs.length;
           return (
             <div key={c} className="row" style={{ padding: "6px 0" }}>
-              <span style={{ minWidth: 150 }}>Ch {c} · {CHAPTER_TITLE[c]}</span>
+              <span style={{ minWidth: 150 }}>{c === 9 ? "Lean" : `Ch ${c}`} · {CHAPTER_TITLE[c]}</span>
               <span className="grow"><Bar value={m} cls="thin" /></span>
               <span className="tiny muted" style={{ minWidth: 38, textAlign: "right" }}>{Math.round(m * 100)}%</span>
             </div>
@@ -64,7 +64,7 @@ export function Ex2Progress() {
       <h3>Every topic</h3>
       {CHAPTERS.map((c) => (
         <div key={c} className="card flat" style={{ marginBottom: 8 }}>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>Chapter {c} · {CHAPTER_TITLE[c]}</div>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>{chapterHead(c)} · {CHAPTER_TITLE[c]}</div>
           {stats.filter((x) => x.topic.chapter === c).map((x) => (
             <div key={x.topic.id} className="row" style={{ padding: "5px 0", gap: 8 }}>
               <span className="grow small">{x.topic.name}</span>
@@ -89,7 +89,7 @@ export function Ex2Progress() {
           <tbody>
             {rows.map(({ p, seen }) => (
               <tr key={p.id} onClick={() => go(`#/x2/play/${p.id}`)}>
-                <td><div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div><div className="tiny muted">Ch {p.chapter}</div></td>
+                <td><div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div><div className="tiny muted">{p.chapter === 9 ? "Study guide" : `Ch ${p.chapter}`}</div></td>
                 {(["name", "need", "route"] as const).map((k) => {
                   const a = rung(p.id, k);
                   return <td key={k}><span className={`cell ${a === null ? "" : masteryClass(a)}`}>{!seen ? "·" : a === null ? "·" : Math.round(a * 100)}</span></td>;

@@ -1,5 +1,5 @@
 import type { Play } from "./types";
-import { CHAPTER_TITLE } from "./types";
+import { CHAPTER_TITLE, chapterHead } from "./types";
 
 /** The structure of a problem on one card: what you need, what to do, what to skip, the trap. */
 export function PlayCard({ play, full = false }: { play: Play; full?: boolean }) {
@@ -7,7 +7,7 @@ export function PlayCard({ play, full = false }: { play: Play; full?: boolean })
     <div className="struct">
       <div className="struct-head">
         <div className="struct-name">{play.name}</div>
-        <div className="tiny muted">Chapter {play.chapter} · {CHAPTER_TITLE[play.chapter]}</div>
+        <div className="tiny muted">{chapterHead(play.chapter)} · {CHAPTER_TITLE[play.chapter]}</div>
       </div>
       {full && (
         <Section label="You'll see">

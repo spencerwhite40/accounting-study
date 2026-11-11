@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp, go } from "../App";
 import { TERMS } from "./terms";
-import { CHAPTERS, CHAPTER_TITLE, type Chapter } from "./types";
+import { CHAPTERS, CHAPTER_TITLE, chapterHead, type Chapter } from "./types";
 import { termConcept } from "./engine";
 import { mastery, retrievability } from "../engine/store";
 import { masteryClass } from "../ui/bits";
@@ -26,7 +26,7 @@ export function TermsScreen() {
         if (!list.length) return null;
         return (
           <div key={c}>
-            <h3>Chapter {c} · {CHAPTER_TITLE[c]}</h3>
+            <h3>{chapterHead(c)} · {CHAPTER_TITLE[c]}</h3>
             <div className="card flat list" style={{ paddingTop: 2, paddingBottom: 2 }}>
               {list.map((t) => {
                 const seen = retrievability(progress, termConcept(t.id)) !== null;

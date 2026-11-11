@@ -6,6 +6,15 @@ export interface Topic { id: string; chapter: Chapter; name: string; plays: stri
 const t = (chapter: Chapter, id: string, name: string, plays: string[], terms: string[] = []): Topic => ({ id: `${chapter}:${id}`, chapter, name, plays, terms });
 
 export const TOPICS: Topic[] = [
+  t(4, "distortion", "Cost distortion and signs of it", [], ["abc"]),
+  t(4, "steps", "Activity-based rates and job overhead", ["p4-abc"], ["activity-pool"]),
+  t(4, "hierarchy", "Cost hierarchy", ["p4-hierarchy"], ["unit-level", "batch-level", "product-level", "facility-level"]),
+  t(4, "abm", "Activity-based management and benefits", [], ["abm"]),
+  t(4, "value", "Value-added or not", [], ["value-added", "non-value-added"]),
+  t(9, "lean", "Lean vs traditional production", [], ["lean", "jit", "cell", "cross-training"]),
+  t(9, "coq", "Cost of quality categories", ["p9-coq"], ["prevention", "appraisal", "internal-failure", "external-failure"]),
+  t(9, "report", "Quality report and total quality management", [], ["tqm", "coq-report"]),
+
   t(5, "system", "Job order vs process costing", ["p5-system"]),
   t(5, "flow", "How cost flows between departments", ["p5-system", "p5-entry"]),
   t(5, "homogeneous", "Identical units and bypassing", ["p5-system"]),

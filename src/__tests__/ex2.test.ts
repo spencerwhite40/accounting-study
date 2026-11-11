@@ -12,7 +12,7 @@ describe("exam 2 content", () => {
   it("ids are unique and chapters are 5 to 8", () => {
     expect(new Set(PLAYS.map((p) => p.id)).size).toBe(PLAYS.length);
     expect(new Set(TERMS.map((t) => t.id)).size).toBe(TERMS.length);
-    for (const p of PLAYS) expect([5, 6, 7, 8]).toContain(p.chapter);
+    for (const p of PLAYS) expect([4, 5, 6, 7, 8, 9]).toContain(p.chapter);
     for (const c of [5, 6, 7, 8]) expect(PLAYS.filter((p) => p.chapter === c).length).toBeGreaterThanOrEqual(5);
   });
   it("every pattern has what it needs to teach", () => {
@@ -168,6 +168,7 @@ describe("exam 2 coverage", () => {
   });
   it("every chapter has number drills for its main calculations", () => {
     for (const c of [5, 6, 7, 8]) expect(FIGURES.filter((f) => f.chapter === c).length).toBeGreaterThanOrEqual(4);
+    for (const c of [4, 9]) expect(FIGURES.filter((f) => f.chapter === c).length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -233,6 +234,11 @@ describe("exam 2 number drills", () => {
       "cost-plus": ([c, m]) => c! * (1 + m! / 100),
       further: ([s0, s1, k]) => s1! - s0! - k!,
       drop: ([c, a]) => a! - c!,
+      regression: ([a, b, X]) => a! + b! * X!,
+      "mix-be": ([SA, cA, SB, cB, F]) => F! / ((cA! + cB!) / (SA! + SB!)),
+      "abc-rate": ([P, n]) => P! / n!,
+      "abc-job": ([r1, r2, u1, u2]) => r1! * u1! + r2! * u2!,
+      "coq-pct": ([a, b, c, d, S]) => ((a! + b! + c! + d!) / S!) * 100,
     };
     for (const [id, rule] of Object.entries(rules)) {
       if (id === "hl-rate") continue;
@@ -274,7 +280,7 @@ describe("exam 2 number drills", () => {
 
 describe("exam 2 session builders", () => {
   it("facts and number sessions stay in chapter and are the right kind", () => {
-    for (const c of [5, 6, 7, 8] as const) {
+    for (const c of [4, 5, 6, 7, 8, 9] as const) {
       const f = buildSession(emptyProgress(), { chapters: [c], kind: "facts" }, 10);
       expect(f.length).toBe(10);
       for (const it of f) { expect(it.kind).toBe("fact"); if (it.kind === "fact") expect(it.fact.chapter).toBe(c); }

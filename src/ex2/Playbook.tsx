@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp, go } from "../App";
 import { PLAYS, PLAY_BY_ID } from "./content";
-import { CHAPTERS, CHAPTER_TITLE, type Chapter } from "./types";
+import { CHAPTERS, CHAPTER_TITLE, chapterHead, type Chapter } from "./types";
 import { playMastery, playConcept } from "./engine";
 import { masteryClass } from "../ui/bits";
 import { PlayCard } from "./Card";
@@ -42,7 +42,7 @@ export function Playbook({ id }: { id?: string }) {
       </div>
       {CHAPTERS.filter((c) => ch === "all" || ch === c).map((c) => (
         <div key={c}>
-          <h3>Chapter {c} · {CHAPTER_TITLE[c]}</h3>
+          <h3>{chapterHead(c)} · {CHAPTER_TITLE[c]}</h3>
           <div className="stack" style={{ gap: 8 }}>
             {list.filter((p) => p.chapter === c).map((p) => {
               const seen = (progress.cards[playConcept(p.id)]?.reps ?? 0) > 0;

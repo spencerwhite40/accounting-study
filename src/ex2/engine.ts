@@ -212,7 +212,7 @@ export function buildSession(p: Progress, scope: Scope, size = 10): Q[] {
 export function playMastery(p: Progress, id: string): number {
   return mastery(p, playConcept(id));
 }
-export function readiness(p: Progress, chapters: Chapter[] = [5, 6, 7, 8]): { mastered: number; seen: number; total: number } {
+export function readiness(p: Progress, chapters: Chapter[] = [4, 5, 6, 7, 8, 9]): { mastered: number; seen: number; total: number } {
   const pool = PLAYS.filter((pl) => chapters.includes(pl.chapter));
   const m = pool.reduce((a, pl) => a + mastery(p, playConcept(pl.id)), 0) / Math.max(1, pool.length);
   const seen = pool.filter((pl) => (p.cards[playConcept(pl.id)]?.reps ?? 0) > 0).length;
