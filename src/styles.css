@@ -265,3 +265,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
 .choice.shake { animation: shake .4s; }
 .choice.hintglow { box-shadow: 0 0 0 3px var(--gold); border-color: var(--gold-deep); }
 @keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* pick-the-number: big 2x2 tap targets */
+.figure-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice.figure{justify-content:center;text-align:center;font-size:20px;font-weight:700;min-height:64px;font-variant-numeric:tabular-nums}

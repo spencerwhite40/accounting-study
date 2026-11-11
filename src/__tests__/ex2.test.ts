@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { PLAYS, PLAY_BY_ID } from "../ex2/content";
 import { TERMS } from "../ex2/terms";
-import { makeName, makeNeed, makeRoute, makeTerm, buildSession, nextKind, routeFor, playConcept } from "../ex2/engine";
+import { makeName, makeNeed, makeRoute, makeTerm, makeFact, makeFigure, buildSession, nextKind, routeFor, playConcept } from "../ex2/engine";
+import { FACTS } from "../ex2/facts";
+import { FIGURES } from "../ex2/figures";
+import { TOPICS } from "../ex2/coverage";
 import { emptyProgress, review, Rating } from "../engine/store";
 import { chapters } from "../content";
 
@@ -100,7 +103,7 @@ describe("exam 2 sessions", () => {
     for (const c of [5, 6, 7, 8] as const) {
       const items = buildSession(emptyProgress(), { chapters: [c], kind: "plays" }, 10);
       expect(items.length).toBeGreaterThan(0);
-      for (const it of items) if (it.kind !== "term") expect(it.play.chapter).toBe(c);
+      for (const it of items) if ("play" in it) expect(it.play.chapter).toBe(c);
     }
   });
   it("a term drill only contains terms from the chosen chapter", () => {
@@ -136,5 +139,168 @@ describe("single pattern drill order", () => {
   it("shows the card, then name, need and route in order", () => {
     const items = buildSession(emptyProgress(), { chapters: [5, 6, 7, 8], kind: "plays", only: ["p8-keepdrop"] }, 3);
     expect(items.map((i) => i.kind)).toEqual(["learn", "name", "need", "route"]);
+  });
+});
+
+describe("exam 2 coverage", () => {
+  const topicIds = new Set(TOPICS.map((t) => t.id));
+  it("every pattern and every term belongs to a topic", () => {
+    const plays = new Set(TOPICS.flatMap((t) => t.plays));
+    const terms = new Set(TOPICS.flatMap((t) => t.terms));
+    expect(PLAYS.filter((p) => !plays.has(p.id)).map((p) => p.id)).toEqual([]);
+    expect(TERMS.filter((t) => !terms.has(t.id)).map((t) => t.id)).toEqual([]);
+    for (const t of TOPICS) {
+      t.plays.forEach((id) => expect(PLAY_BY_ID.has(id), `${t.id} → ${id}`).toBe(true));
+      t.terms.forEach((id) => expect(TERMS.some((x) => x.id === id), `${t.id} → ${id}`).toBe(true));
+    }
+  });
+  it("every topic is trained by at least two facts and by a pattern or term", () => {
+    for (const t of TOPICS) {
+      const topic = t.id.split(":")[1];
+      const n = FACTS.filter((f) => f.chapter === t.chapter && f.topic === topic).length;
+      expect(n, `${t.id} facts`).toBeGreaterThanOrEqual(2);
+      expect(t.plays.length + t.terms.length, `${t.id} patterns/terms`).toBeGreaterThanOrEqual(1);
+    }
+  });
+  it("every fact and number drill points at a real topic", () => {
+    for (const f of FACTS) expect(topicIds.has(`${f.chapter}:${f.topic}`), f.id).toBe(true);
+    for (const f of FIGURES) expect(topicIds.has(`${f.chapter}:${f.topic}`), f.id).toBe(true);
+  });
+  it("every chapter has number drills for its main calculations", () => {
+    for (const c of [5, 6, 7, 8]) expect(FIGURES.filter((f) => f.chapter === c).length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("exam 2 quick facts", () => {
+  it("ids are unique, options are distinct and short", () => {
+    expect(new Set(FACTS.map((f) => f.id)).size).toBe(FACTS.length);
+    expect(FACTS.length).toBeGreaterThanOrEqual(150);
+    for (const f of FACTS) {
+      expect(new Set([f.a, ...f.wrong]).size, f.id).toBe(3);
+      expect(f.q.length, f.id).toBeLessThanOrEqual(90);
+      for (const t of [f.a, ...f.wrong]) expect(t.length, `${f.id}: ${t}`).toBeLessThanOrEqual(70);
+    }
+  });
+  it("the right answer lands where the question says", () => {
+    for (const f of FACTS) for (let i = 0; i < 5; i++) {
+      const q = makeFact(f);
+      if (q.kind !== "fact") throw new Error();
+      expect(q.options[q.answer]).toBe(f.a);
+    }
+  });
+  it("no raw abbreviations", () => {
+    const banned = /\b(COGS|COGM|MOH|DLH|WIP|FG|RM|CM|CVP|VC|FC|DOL|MOS)\b/;
+    for (const f of FACTS) for (const t of [f.q, f.a, ...f.wrong, f.why ?? ""]) expect(banned.test(t), `${f.id}: ${t}`).toBe(false);
+  });
+});
+
+describe("exam 2 number drills", () => {
+  it("every template gives four distinct, clean answers, many times over", () => {
+    for (const tpl of FIGURES) for (let i = 0; i < 300; i++) {
+      const q = makeFigure(tpl);
+      if (q.kind !== "figure") throw new Error();
+      expect(q.options.length, tpl.id).toBe(4);
+      expect(new Set(q.options.map((o) => o.text)).size, tpl.id).toBe(4);
+      expect(q.options[q.answer]!.why, tpl.id).toBeUndefined();
+      for (const o of q.options) expect(/NaN|Infinity|undefined|-0\b/.test(o.text), `${tpl.id}: ${o.text}`).toBe(false);
+      expect(/NaN|Infinity|undefined/.test(q.q), tpl.id).toBe(false);
+      q.options.forEach((o, k) => { if (k !== q.answer) expect(o.why?.length ?? 0, `${tpl.id} wrong-answer reason`).toBeGreaterThan(5); });
+    }
+  });
+  it("the keyed answer matches an independent recalculation from the question text", () => {
+    const nums = (q: string) => [...q.matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) => Number(m[0].replace(/,/g, "")));
+    const val = (s: string) => Number(s.replace(/[^\d.\-−]/g, "").replace("−", "-"));
+    const sign = (s: string) => (s.startsWith("−") ? -1 : 1) * Math.abs(val(s));
+    const rules: Record<string, (n: number[]) => number> = {
+      eup: ([out, end, p]) => out! + (end! * p!) / 100,
+      cpeu: ([beg, add, e]) => (beg! + add!) / e!,
+      endcost: ([end, p, c]) => ((end! * p!) / 100) * c!,
+      units: ([beg, st, out]) => beg! + st! - out!,
+      "hl-rate": ([, cL, , cH, ...r]) => { void r; return NaN; },
+      mixed: ([F, b, X]) => F! + b! * X!,
+      "fixed-unit": ([R, , u2]) => R! / u2!,
+      "cm-income": ([S, V, F]) => S! - V! - F!,
+      "be-units": ([F, p, v]) => F! / (p! - v!),
+      "be-dollars": ([F, m]) => F! / (m! / 100),
+      "target-units": ([F, P, cm]) => (F! + P!) / cm!,
+      dol: ([cm, oi]) => cm! / oi!,
+      "op-change": ([dS, m]) => (dS! * m!) / 100,
+      adv: ([A, dS, m]) => (dS! * m!) / 100 - A!,
+      makebuy: ([a, b, c]) => a! + b! + c!,
+      special: ([n, p, v, , K]) => n! * (p! - v!) - K!,
+      constraint: ([m, h]) => m! / h!,
+      "target-cost": ([p, m]) => p! * (1 - m! / 100),
+      "cost-plus": ([c, m]) => c! * (1 + m! / 100),
+      further: ([s0, s1, k]) => s1! - s0! - k!,
+      drop: ([c, a]) => a! - c!,
+    };
+    for (const [id, rule] of Object.entries(rules)) {
+      if (id === "hl-rate") continue;
+      const tpl = FIGURES.find((x) => x.id === id)!;
+      for (let i = 0; i < 100; i++) {
+        const f = tpl.make(Math.random);
+        const want = rule(nums(f.q));
+        const got = ["adv", "special", "further", "drop"].includes(id) ? sign(f.ans) : val(f.ans);
+        expect(got, `${id}: ${f.q}`).toBeCloseTo(want, 1);
+      }
+    }
+    // high-low: rate = (high cost - low cost) / (high units - low units); fixed = high cost - rate x high units
+    const hr = FIGURES.find((x) => x.id === "hl-rate")!;
+    for (let i = 0; i < 100; i++) {
+      const f = hr.make(Math.random);
+      const [L, cL, H, cH] = nums(f.q);
+      expect(val(f.ans)).toBeCloseTo((cH! - cL!) / (H! - L!), 5);
+    }
+    const hf = FIGURES.find((x) => x.id === "hl-fixed")!;
+    for (let i = 0; i < 100; i++) {
+      const f = hf.make(Math.random);
+      const [rate, H, cH] = nums(f.q);
+      expect(val(f.ans)).toBeCloseTo(cH! - rate! * H!, 5);
+    }
+    const mo = FIGURES.find((x) => x.id === "mos")!;
+    for (let i = 0; i < 100; i++) {
+      const f = mo.make(Math.random);
+      const [S, BE] = nums(f.q);
+      expect(val(f.ans)).toBeCloseTo(((S! - BE!) / S!) * 100, 1);
+    }
+    const cr = FIGURES.find((x) => x.id === "cm-ratio")!;
+    for (let i = 0; i < 100; i++) {
+      const f = cr.make(Math.random);
+      const [S, V] = nums(f.q);
+      expect(val(f.ans)).toBeCloseTo(((S! - V!) / S!) * 100, 1);
+    }
+  });
+});
+
+describe("exam 2 session builders", () => {
+  it("facts and number sessions stay in chapter and are the right kind", () => {
+    for (const c of [5, 6, 7, 8] as const) {
+      const f = buildSession(emptyProgress(), { chapters: [c], kind: "facts" }, 10);
+      expect(f.length).toBe(10);
+      for (const it of f) { expect(it.kind).toBe("fact"); if (it.kind === "fact") expect(it.fact.chapter).toBe(c); }
+      const n = buildSession(emptyProgress(), { chapters: [c], kind: "figures" }, 4);
+      for (const it of n) { expect(it.kind).toBe("figure"); if (it.kind === "figure") expect(it.tpl.chapter).toBe(c); }
+    }
+  });
+  it("the quick drill mixes patterns, facts and numbers from one chapter", () => {
+    const items = buildSession(emptyProgress(), { chapters: [7], kind: "mix" }, 10);
+    const kinds = new Set(items.map((i) => i.kind));
+    expect(kinds.has("fact")).toBe(true);
+    expect(kinds.has("figure")).toBe(true);
+    expect([...kinds].some((k) => k === "name" || k === "learn")).toBe(true);
+    for (const it of items) {
+      const ch = it.kind === "fact" ? it.fact.chapter : it.kind === "figure" ? it.tpl.chapter : it.kind === "term" ? it.term.chapter : it.play.chapter;
+      expect(ch).toBe(7);
+    }
+    const li = items.findIndex((i) => i.kind === "learn");
+    if (li >= 0) expect((items[li + 1] as { play?: { id: string } }).play?.id).toBe((items[li] as { play: { id: string } }).play.id);
+  });
+  it("answered facts leave the front of the line", () => {
+    const p = emptyProgress();
+    const first = buildSession(p, { chapters: [5], kind: "facts" }, 5);
+    for (const it of first) if (it.kind === "fact") review(p, `ex2.f.${it.fact.id}`, "fact", Rating.Good, 0);
+    const second = buildSession(p, { chapters: [5], kind: "facts" }, 5);
+    const ids = new Set(first.map((i) => i.id));
+    expect(second.filter((i) => ids.has(i.id)).length).toBe(0);
   });
 });

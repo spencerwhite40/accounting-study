@@ -5,6 +5,10 @@ import { CHAPTERS, CHAPTER_TITLE } from "./types";
 import { playConcept, playMastery, readiness, termConcept } from "./engine";
 import { accuracy, mastery, streak } from "../engine/store";
 import { Ring, Bar, masteryClass } from "../ui/bits";
+import { FACTS } from "./facts";
+import { FIGURES } from "./figures";
+import { TOPICS, topicStat } from "./coverage";
+import { factConcept, figureConcept } from "./engine";
 
 export function Ex2Progress() {
   const { progress } = useApp();
@@ -13,6 +17,9 @@ export function Ex2Progress() {
   const termsSeen = TERMS.filter((t) => (progress.cards[termConcept(t.id)]?.reps ?? 0) > 0).length;
   const termM = TERMS.reduce((a, t) => a + mastery(progress, termConcept(t.id)), 0) / TERMS.length;
   const rows = PLAYS.map((p) => ({ p, m: playMastery(progress, p.id), seen: (progress.cards[playConcept(p.id)]?.reps ?? 0) > 0 })).sort((a, b) => (a.seen === b.seen ? a.m - b.m : a.seen ? -1 : 1));
+  const factsSeen = FACTS.filter((f) => (progress.cards[factConcept(f.id)]?.reps ?? 0) > 0).length;
+  const figsSeen = FIGURES.filter((f) => (progress.cards[figureConcept(f.id)]?.reps ?? 0) > 0).length;
+  const stats = TOPICS.map((t) => topicStat(progress, t));
   const weak = rows.filter((x) => x.seen && x.m < 0.7).slice(0, 5);
   const rung = (id: string, k: "name" | "need" | "route") => accuracy(progress, playConcept(id), k);
   return (
@@ -21,10 +28,12 @@ export function Ex2Progress() {
       <h1>Exam 2: where you stand</h1>
       <div className="card">
         <div className="row top">
-          <Ring value={r.mastered} label="learned" />
+          <Ring value={stats.reduce((a, x) => a + x.mastery, 0) / stats.length} label="learned" />
           <div className="grow">
             <div className="row" style={{ justifyContent: "space-between" }}><span className="muted small">Problem types seen</span><b>{r.seen}/{r.total}</b></div>
             <div className="row" style={{ justifyContent: "space-between" }}><span className="muted small">Terms seen</span><b>{termsSeen}/{TERMS.length}</b></div>
+            <div className="row" style={{ justifyContent: "space-between" }}><span className="muted small">Facts seen</span><b>{factsSeen}/{FACTS.length}</b></div>
+            <div className="row" style={{ justifyContent: "space-between" }}><span className="muted small">Number drills seen</span><b>{figsSeen}/{FIGURES.length}</b></div>
             <div className="row" style={{ justifyContent: "space-between" }}><span className="muted small">Day streak</span><b>{st}</b></div>
           </div>
         </div>
@@ -34,7 +43,9 @@ export function Ex2Progress() {
       <div className="card flat">
         {CHAPTERS.map((c) => {
           const pool = PLAYS.filter((p) => p.chapter === c);
-          const m = pool.reduce((a, p) => a + playMastery(progress, p.id), 0) / pool.length;
+          void pool;
+          const cs = stats.filter((x) => x.topic.chapter === c);
+          const m = cs.reduce((a, x) => a + x.mastery, 0) / cs.length;
           return (
             <div key={c} className="row" style={{ padding: "6px 0" }}>
               <span style={{ minWidth: 150 }}>Ch {c} · {CHAPTER_TITLE[c]}</span>
@@ -49,6 +60,20 @@ export function Ex2Progress() {
           <span className="tiny muted" style={{ minWidth: 38, textAlign: "right" }}>{Math.round(termM * 100)}%</span>
         </div>
       </div>
+
+      <h3>Every topic</h3>
+      {CHAPTERS.map((c) => (
+        <div key={c} className="card flat" style={{ marginBottom: 8 }}>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>Chapter {c} · {CHAPTER_TITLE[c]}</div>
+          {stats.filter((x) => x.topic.chapter === c).map((x) => (
+            <div key={x.topic.id} className="row" style={{ padding: "5px 0", gap: 8 }}>
+              <span className="grow small">{x.topic.name}</span>
+              <span style={{ width: 70 }}><Bar value={x.mastery} cls="thin" /></span>
+              <span className="tiny muted" style={{ minWidth: 40, textAlign: "right" }}>{x.seen === 0 ? "new" : `${x.seen}/${x.total}`}</span>
+            </div>
+          ))}
+        </div>
+      ))}
 
       {weak.length > 0 && (
         <>

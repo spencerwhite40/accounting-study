@@ -1,20 +1,26 @@
 import { PLAYS, PLAY_BY_ID } from "./content";
 import { TERMS } from "./terms";
+import { FACTS, type Fact } from "./facts";
+import { FIGURES, type FigTpl } from "./figures";
 import type { Chapter, Play, Route, Term } from "./types";
 import { isDue, mastery, accuracy, attempts, type Progress } from "../engine/store";
 
 export type Kind = "name" | "need" | "route";
 export const KINDS: Kind[] = ["name", "need", "route"];
-export const KIND_LABEL: Record<Kind | "term", string> = { name: "Name it", need: "Need it", route: "Route it", term: "Term" };
+export const KIND_LABEL: Record<Kind | "term" | "fact" | "figure", string> = { name: "Name it", need: "Need it", route: "Route it", term: "Term", fact: "Quick fact", figure: "Pick the number" };
 export const playConcept = (id: string) => `ex2.${id}`;
 export const termConcept = (id: string) => `ex2.t.${id}`;
+export const factConcept = (id: string) => `ex2.f.${id}`;
+export const figureConcept = (id: string) => `ex2.n.${id}`;
 
 export type Q =
   | { kind: "learn"; id: string; play: Play }
   | { kind: "name"; id: string; play: Play; prompt: string; options: { id: string; text: string }[]; answer: number }
   | { kind: "need"; id: string; play: Play; q: string; chips: { text: string; need: boolean; why?: string }[] }
   | { kind: "route"; id: string; play: Play; goal: string; given: string[]; steps: string[]; options: { text: string; idx: number }[] }
-  | { kind: "term"; id: string; term: Term; prompt: string; options: string[]; answer: number };
+  | { kind: "term"; id: string; term: Term; prompt: string; options: string[]; answer: number }
+  | { kind: "fact"; id: string; fact: Fact; options: string[]; answer: number }
+  | { kind: "figure"; id: string; tpl: FigTpl; q: string; options: { text: string; why?: string }[]; answer: number; how: string };
 
 export function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
   const a = arr.slice();
@@ -87,11 +93,50 @@ export function makeTerm(term: Term, variant: number, rng: () => number = Math.r
     : { kind: "term", id: `term:${term.id}:${variant}`, term, prompt: term.line, options: all.map((t) => t.term), answer: all.findIndex((t) => t.id === term.id) };
 }
 
+export function makeFact(fact: Fact, rng: () => number = Math.random): Q {
+  const opts = shuffle([fact.a, ...fact.wrong], rng);
+  return { kind: "fact", id: `fact:${fact.id}`, fact, options: opts, answer: opts.indexOf(fact.a) };
+}
+
+export function makeFigure(tpl: FigTpl, rng: () => number = Math.random): Q {
+  for (let tries = 0; tries < 30; tries++) {
+    const f = tpl.make(rng);
+    const texts = [f.ans, ...f.wrong.map((w) => w[0])];
+    if (new Set(texts).size !== texts.length) continue;
+    const opts = shuffle([{ text: f.ans } as { text: string; why?: string }, ...f.wrong.map(([text, why]) => ({ text, why }))], rng);
+    return { kind: "figure", id: `figure:${tpl.id}:${Math.floor(rng() * 1e6)}`, tpl, q: f.q, options: opts, answer: opts.findIndex((o) => o.text === f.ans), how: f.how };
+  }
+  throw new Error(`figure ${tpl.id}: could not make distinct options`);
+}
+
 export function makeQuestion(play: Play, kind: Kind, variant: number): Q {
   return kind === "name" ? makeName(play, variant) : kind === "need" ? makeNeed(play, variant) : makeRoute(play, variant);
 }
 
-export interface Scope { chapters: Chapter[]; kind: "plays" | "terms"; only?: string[] }
+export interface Scope { chapters: Chapter[]; kind: "plays" | "terms" | "facts" | "figures" | "mix"; only?: string[] }
+
+/** Due first, then shaky, then new, then solid. Every pool uses the same order. */
+function ranked<T>(pool: T[], concept: (t: T) => string, p: Progress, now: Date): T[] {
+  const reps = (t: T) => p.cards[concept(t)]?.reps ?? 0;
+  const m = (t: T) => mastery(p, concept(t), now);
+  const due = shuffle(pool.filter((t) => isDue(p, concept(t), now)));
+  const rest = pool.filter((t) => !isDue(p, concept(t), now));
+  const weak = rest.filter((t) => reps(t) > 0 && m(t) < 0.6).sort((a, b) => m(a) - m(b));
+  const fresh = shuffle(rest.filter((t) => reps(t) === 0));
+  const strong = rest.filter((t) => reps(t) > 0 && m(t) >= 0.6).sort((a, b) => m(a) - m(b));
+  return [...due, ...weak, ...fresh, ...strong];
+}
+
+/** Keep a learn card glued to the question that follows it. */
+function groupLearn(items: Q[]): Q[][] {
+  const groups: Q[][] = [];
+  for (const it of items) {
+    if (it.kind === "learn") groups.push([it]);
+    else if (groups.length && groups[groups.length - 1]!.length === 1 && groups[groups.length - 1]![0]!.kind === "learn" && (groups[groups.length - 1]![0] as { play: Play }).play.id === (it as { play: Play }).play.id) groups[groups.length - 1]!.push(it);
+    else groups.push([it]);
+  }
+  return groups;
+}
 
 /** Which drill to ask next for a pattern: climb name → need → route, stay on a rung until it is passed. */
 export function nextKind(p: Progress, playId: string, rng: () => number = Math.random): Kind {
@@ -108,6 +153,20 @@ export function nextKind(p: Progress, playId: string, rng: () => number = Math.r
 
 export function buildSession(p: Progress, scope: Scope, size = 10): Q[] {
   const now = new Date();
+  if (scope.kind === "facts") {
+    return ranked(FACTS.filter((f) => scope.chapters.includes(f.chapter)), (f) => factConcept(f.id), p, now).slice(0, size).map((f) => makeFact(f));
+  }
+  if (scope.kind === "figures") {
+    return ranked(FIGURES.filter((f) => scope.chapters.includes(f.chapter)), (f) => figureConcept(f.id), p, now).slice(0, size).map((f) => makeFigure(f));
+  }
+  if (scope.kind === "mix") {
+    const nPlays = Math.max(1, Math.round(size * 0.5));
+    const nFacts = Math.max(1, Math.round(size * 0.3));
+    const nFigs = Math.max(1, size - nPlays - nFacts);
+    const plays = groupLearn(buildSession(p, { ...scope, kind: "plays" }, nPlays));
+    const rest = [...buildSession(p, { ...scope, kind: "facts" }, nFacts), ...buildSession(p, { ...scope, kind: "figures" }, nFigs)].map((q) => [q]);
+    return shuffle([...plays, ...rest]).flat();
+  }
   if (scope.kind === "terms") {
     const pool = TERMS.filter((t) => scope.chapters.includes(t.chapter));
     const c = (t: Term) => termConcept(t.id);
@@ -146,13 +205,7 @@ export function buildSession(p: Progress, scope: Scope, size = 10): Q[] {
     }
     round++;
   }
-  // keep each learn card right before its question, otherwise shuffle the order of patterns
-  const groups: Q[][] = [];
-  for (const it of items) {
-    if (it.kind === "learn") groups.push([it]);
-    else if (groups.length && groups[groups.length - 1]!.length === 1 && groups[groups.length - 1]![0]!.kind === "learn" && (groups[groups.length - 1]![0] as { play: Play }).play.id === (it as { play: Play }).play.id) groups[groups.length - 1]!.push(it);
-    else groups.push([it]);
-  }
+  const groups = groupLearn(items);
   return (scope.only ? groups : shuffle(groups)).flat();
 }
 

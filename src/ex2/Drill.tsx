@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useApp, go } from "../App";
 import { review, Rating, type Grade, mastery, humanInterval } from "../engine/store";
 import { haptic, Ring, masteryClass } from "../ui/bits";
-import { buildSession, playConcept, termConcept, KIND_LABEL, type Q } from "./engine";
+import { buildSession, playConcept, termConcept, factConcept, figureConcept, KIND_LABEL, type Q } from "./engine";
 import { CHAPTERS, CHAPTER_TITLE, type Chapter } from "./types";
 import { PLAY_BY_ID } from "./content";
 import { PlayCard } from "./Card";
@@ -13,7 +13,8 @@ function scopeFromParams(p: URLSearchParams) {
   const only = p.get("only")?.split(",").filter(Boolean);
   const ch = p.get("ch");
   const chapters: Chapter[] = !ch || ch === "all" ? CHAPTERS : [Number(ch) as Chapter];
-  const kind = p.get("scope") === "terms" ? ("terms" as const) : ("plays" as const);
+  const sc = p.get("scope");
+  const kind = sc === "terms" ? ("terms" as const) : sc === "facts" ? ("facts" as const) : sc === "figures" ? ("figures" as const) : sc === "plays" || only?.length ? ("plays" as const) : ("mix" as const);
   return { chapters, kind, ...(only && only.length ? { only } : {}) };
 }
 
@@ -36,7 +37,7 @@ export function Drill({ params }: { params: URLSearchParams }) {
     setResult(r);
     setLog((l) => [...l, { q, r }]);
     haptic(r.tone === "bad" ? "bad" : "ok");
-    const concept = q.kind === "term" ? termConcept(q.term.id) : q.kind === "learn" ? null : playConcept(q.play.id);
+    const concept = q.kind === "learn" ? null : q.kind === "term" ? termConcept(q.term.id) : q.kind === "fact" ? factConcept(q.fact.id) : q.kind === "figure" ? figureConcept(q.tpl.id) : playConcept(q.play.id);
     if (concept && q.kind !== "learn") update((p) => { review(p, concept, q.kind, r.rating, 0); });
   };
   const next = () => {
@@ -47,7 +48,7 @@ export function Drill({ params }: { params: URLSearchParams }) {
 
   if (!q) return <Summary log={log} minutes={(Date.now() - started) / 60000} onAgain={() => { setItems(buildSession(progress, scope, size)); setI(0); setLog([]); setResult(null); }} />;
 
-  const ch = q.kind === "term" ? q.term.chapter : q.play.chapter;
+  const ch = q.kind === "term" ? q.term.chapter : q.kind === "fact" ? q.fact.chapter : q.kind === "figure" ? q.tpl.chapter : q.play.chapter;
   const isLearn = q.kind === "learn";
   const answered = isLearn || !!result;
   return (
@@ -78,12 +79,14 @@ export function Drill({ params }: { params: URLSearchParams }) {
         {q.kind === "need" && <NeedQ q={q} onDone={finish} />}
         {q.kind === "route" && <RouteQ q={q} onDone={finish} />}
         {q.kind === "term" && <TermQ q={q} onDone={finish} locked={!!result} />}
+        {q.kind === "fact" && <FactQ q={q} onDone={finish} locked={!!result} />}
+        {q.kind === "figure" && <FigureQ q={q} onDone={finish} locked={!!result} />}
       </div>
 
       {result && q.kind !== "learn" && (
         <>
           <div className={`feedback ${result.tone}`}>{result.msg}</div>
-          {q.kind !== "term" && <PlayCard play={q.play} />}
+          {q.kind !== "term" && q.kind !== "fact" && q.kind !== "figure" && <PlayCard play={q.play} />}
         </>
       )}
 
@@ -129,6 +132,46 @@ function TermQ({ q, onDone, locked }: { q: Extract<Q, { kind: "term" }>; onDone:
       {q.options.map((o, k) => (
         <button key={k} className={`choice ${picked === null ? "" : k === q.answer ? "right" : k === picked ? "wrong" : ""}`} onClick={() => tap(k)}>{o}</button>
       ))}
+    </>
+  );
+}
+
+function FactQ({ q, onDone, locked }: { q: Extract<Q, { kind: "fact" }>; onDone: (r: Result) => void; locked: boolean }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  const tap = (k: number) => {
+    if (locked) return;
+    setPicked(k);
+    const ok = k === q.answer;
+    onDone({ rating: ok ? Rating.Good : Rating.Again, tone: ok ? "ok" : "bad", msg: ok ? "Right" : `Answer: ${q.fact.a}` });
+  };
+  return (
+    <>
+      <div className="card prompt">{q.fact.q}</div>
+      {q.options.map((o, k) => (
+        <button key={k} className={`choice ${picked === null ? "" : k === q.answer ? "right" : k === picked ? "wrong" : ""}`} onClick={() => tap(k)}>{o}</button>
+      ))}
+    </>
+  );
+}
+
+function FigureQ({ q, onDone, locked }: { q: Extract<Q, { kind: "figure" }>; onDone: (r: Result) => void; locked: boolean }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  const tap = (k: number) => {
+    if (locked) return;
+    setPicked(k);
+    const ok = k === q.answer;
+    const why = q.options[k]?.why;
+    onDone({ rating: ok ? Rating.Good : Rating.Again, tone: ok ? "ok" : "bad", msg: ok ? `Right. ${q.how}` : `${why ? `${why} ` : ""}${q.how}` });
+  };
+  return (
+    <>
+      <div className="card prompt">{q.q}</div>
+      <p className="small muted" style={{ margin: "0 0 4px" }}>Tap the answer.</p>
+      <div className="figure-grid">
+        {q.options.map((o, k) => (
+          <button key={k} className={`choice figure ${picked === null ? "" : k === q.answer ? "right" : k === picked ? "wrong" : ""}`} onClick={() => tap(k)}>{o.text}</button>
+        ))}
+      </div>
     </>
   );
 }
@@ -232,7 +275,7 @@ function Summary({ log, minutes, onAgain }: { log: { q: Q; r: Result }[]; minute
   const qs = log.filter((l) => l.q.kind !== "learn");
   const good = qs.filter((l) => l.r.tone === "ok").length;
   const missed = qs.filter((l) => l.r.tone !== "ok");
-  const missedIds = [...new Set(missed.map((l) => (l.q.kind === "term" ? null : (l.q as { play: { id: string } }).play.id)).filter((x): x is string => !!x))];
+  const missedIds = [...new Set(missed.map((l) => (l.q.kind === "term" || l.q.kind === "fact" || l.q.kind === "figure" ? null : (l.q as { play: { id: string } }).play.id)).filter((x): x is string => !!x))];
   return (
     <div className="screen session center" style={{ paddingBottom: 24 }}>
       <div style={{ width: "100%" }}>

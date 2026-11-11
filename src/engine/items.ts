@@ -2,8 +2,8 @@ import type { Chapter, Concept, SortSet, OrderSet, CalcInstance } from "../conte
 import { CalcGraph, generate } from "./calc";
 import { shortOf, sameMeaning } from "../content/short";
 
-export type Mode = "flashcard" | "mcq" | "cloze" | "sort" | "order" | "formula" | "chain" | "calc" | "journal" | "name" | "need" | "route" | "term";
-export const MODES: Mode[] = ["flashcard", "mcq", "cloze", "sort", "order", "formula", "chain", "calc", "journal", "name", "need", "route", "term"];
+export type Mode = "flashcard" | "mcq" | "cloze" | "sort" | "order" | "formula" | "chain" | "calc" | "journal" | "name" | "need" | "route" | "term" | "fact" | "figure";
+export const MODES: Mode[] = ["flashcard", "mcq", "cloze", "sort", "order", "formula", "chain", "calc", "journal", "name", "need", "route", "term", "fact", "figure"];
 export const MODE_LABEL: Record<Mode, string> = {
   flashcard: "Flashcards",
   mcq: "Multiple choice",
@@ -18,6 +18,8 @@ export const MODE_LABEL: Record<Mode, string> = {
   need: "Need it",
   route: "Route it",
   term: "Terms",
+  fact: "Quick fact",
+  figure: "Pick the number",
 };
 
 export type ClozePart = string | { answers: string[] };
